@@ -436,6 +436,45 @@ docker compose up -d
 if ($http_x_cdn_auth != "a9f3b1c8d2e6f4a7c9b0d1e2f3a4b5c6d7e") { return 403; }
 ```
 
+**Nginx 完整参考配置（含回源鉴权 Header 示例）**
+
+> 将 `your-shared-secret` 替换为你在 CDN 回源时添加的同一值。
+
+```nginx
+events {}
+
+http {
+  server {
+    listen 80;
+    server_name mirror.example.com;
+    return 301 https://$host$request_uri;
+  }
+
+  server {
+    listen 443 ssl http2;
+    server_name mirror.example.com;
+
+    ssl_certificate     /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+
+    client_max_body_size 0;
+    proxy_read_timeout 900s;
+    proxy_request_buffering off;
+
+    # 仅示例：把 your-shared-secret 换成你的随机值
+    if ($http_x_cdn_auth != "a9f3b1c8d2e6f4a7c9b0d1e2f3a4b5c6d7e") { return 403; }
+
+    location /v2/ {
+      proxy_pass                          http://registry:5000;
+      proxy_set_header Host               $host;
+      proxy_set_header X-Real-IP          $remote_addr;
+      proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto  $scheme;
+    }
+  }
+}
+```
+
 **WAF 放行规则要点：**
 - 放行路径：`/v2/`（包含 `blobs`、`manifests`）
 - 放行方法：`GET`、`HEAD`、`OPTIONS`
