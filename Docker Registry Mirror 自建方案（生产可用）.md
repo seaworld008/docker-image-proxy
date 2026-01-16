@@ -108,6 +108,8 @@ http:
     X-Content-Type-Options: [nosniff]
 ```
 
+> 说明：Registry v3 默认读取 `/etc/distribution/config.yml`，下文的 compose 已按此路径挂载。
+
 ### 3) 写入环境变量（代理 + Docker Hub 账号，必填）
 
 创建 `/data/registry-mirror/.env`（将地址替换成你真实代理；示例 `http://192.168.110.210:7897` 为本地 Clash 代理地址；建议注册自己的 Docker Hub 账号并创建 Access Token）：
@@ -147,7 +149,7 @@ services:
       REGISTRY_PROXY_PASSWORD: ${DOCKERHUB_PASS}
     volumes:
       - ./data:/var/lib/registry
-      - ./config/config.yml:/etc/docker/registry/config.yml:ro
+      - ./config/config.yml:/etc/distribution/config.yml:ro
 ```
 
 启动：
@@ -226,6 +228,8 @@ http:
     X-Content-Type-Options: [nosniff]
 ```
 
+> 说明：Registry v3 默认读取 `/etc/distribution/config.yml`，下文的 compose 已按此路径挂载。
+
 ### 4) Nginx 配置（TLS 终止 + 反代）
 
 创建 `/data/registry-mirror/nginx/nginx.conf`：
@@ -280,7 +284,7 @@ services:
       REGISTRY_PROXY_PASSWORD: ${DOCKERHUB_PASS}
     volumes:
       - ./data:/var/lib/registry
-      - ./config/config.yml:/etc/docker/registry/config.yml:ro
+      - ./config/config.yml:/etc/distribution/config.yml:ro
 
   nginx:
     image: nginx:1.27
@@ -712,8 +716,8 @@ crictl pull docker.io/library/alpine:3.20
 docker compose down
 docker run --rm \
   -v /data/registry-mirror/data:/var/lib/registry \
-  -v /data/registry-mirror/config/config.yml:/etc/docker/registry/config.yml:ro \
-  registry:3.0.0 garbage-collect /etc/docker/registry/config.yml
+  -v /data/registry-mirror/config/config.yml:/etc/distribution/config.yml:ro \
+  registry:3.0.0 garbage-collect /etc/distribution/config.yml
 docker compose up -d
 ```
 
