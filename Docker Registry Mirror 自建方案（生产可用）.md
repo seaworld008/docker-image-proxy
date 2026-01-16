@@ -134,7 +134,7 @@ Docker Hub 对匿名拉取有严格的速率限制（尤其是多节点/高并�
 ```yaml
 services:
   registry:
-    image: registry:2.8.2
+    image: registry:3.0.0
     container_name: registry-mirror
     restart: unless-stopped
     ports:
@@ -271,7 +271,7 @@ http {
 ```yaml
 services:
   registry:
-    image: registry:2.8.2
+    image: registry:3.0.0
     container_name: registry-mirror
     restart: unless-stopped
     environment:
@@ -713,7 +713,7 @@ docker compose down
 docker run --rm \
   -v /data/registry-mirror/data:/var/lib/registry \
   -v /data/registry-mirror/config/config.yml:/etc/docker/registry/config.yml:ro \
-  registry:2.8.2 garbage-collect /etc/docker/registry/config.yml
+  registry:3.0.0 garbage-collect /etc/docker/registry/config.yml
 docker compose up -d
 ```
 
@@ -811,7 +811,7 @@ time docker pull alpine:3.20
 ## 参考与原始地址
 
 - Docker Distribution（registry）源码：https://github.com/distribution/distribution  
-- Docker Hub 镜像（registry:2.8.2）：https://hub.docker.com/_/registry  
+- Docker Hub 镜像（registry:3.0.0）：https://hub.docker.com/_/registry  
 - Docker Hub 官方说明：https://docs.docker.com/docker-hub/  
 - containerd 官方文档：https://containerd.io/docs/  
 - K3s 官方文档：https://docs.k3s.io/
