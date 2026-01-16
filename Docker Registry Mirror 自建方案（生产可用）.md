@@ -2,6 +2,22 @@
 
 本文提供两个可直接落地的 Docker Hub 镜像加速方案，均基于官方 `registry:2` 的 **proxy mirror** 模式，可缓存已拉取的镜像层，显著提升国内拉取速度与稳定性。
 
+## 目录
+
+- [方案选择](#section-choice)
+- [适用规模（中小规模）](#section-scope)
+- [中小规模推荐配置（参考范围）](#section-sizing)
+- [方案前提条件（务必确认）](#section-prereq)
+- [方案 A：使用你已有的代理出海（内网加速）](#section-plan-a)
+- [方案 B：外网服务器 + CDN 加速（生产推荐）](#section-plan-b)
+- [K8S 节点配置（Docker / containerd）](#section-k8s)
+- [运维与优化建议](#section-ops)
+- [测速与链路评估（方案 A/方案 B 通用）](#section-bench)
+- [快速排错](#section-troubleshoot)
+- [后续扩展（规划项）](#section-next)
+- [参考与原始地址](#section-refs)
+
+<a id="section-choice"></a>
 ## 方案选择
 
 - 方案 A：**利用你已有的机场订阅代理（本地/内网）**，部署一个内网镜像加速服务，走你的代理出海。
@@ -11,6 +27,7 @@
 
 ---
 
+<a id="section-scope"></a>
 ## 适用规模（中小规模）
 
 本方案更适合 **中小规模** 场景：小团队/多节点环境、拉取频次中等、缓存规模可控。  
@@ -18,6 +35,7 @@
 
 ---
 
+<a id="section-sizing"></a>
 ## 中小规模推荐配置（参考范围）
 
 以下为经验范围，便于快速落地，实际按并发量与镜像体积调整。
@@ -30,6 +48,7 @@
 
 ---
 
+<a id="section-prereq"></a>
 ## 方案前提条件（务必确认）
 
 ### 方案 A 前提（内网代理出海）
@@ -53,6 +72,7 @@
 
 ---
 
+<a id="section-plan-a"></a>
 ## 方案 A：使用你已有的代理出海（内网加速）
 
 ### 架构
@@ -163,6 +183,7 @@ docker pull hello-world
 
 ---
 
+<a id="section-plan-b"></a>
 ## 方案 B：外网服务器 + CDN 加速（生产推荐）
 
 ### 架构
@@ -523,6 +544,7 @@ docker pull hello-world
 
 ---
 
+<a id="section-k8s"></a>
 ## K8S 节点配置（Docker / containerd）
 
 > 需要在 **每个节点** 上配置。生产建议优先使用 HTTPS 镜像地址；若是内网 HTTP，请确保仅限内网访问并做好防火墙控制。
@@ -679,6 +701,7 @@ crictl pull docker.io/library/alpine:3.20
 
 ---
 
+<a id="section-ops"></a>
 ## 运维与优化建议
 
 - 镜像缓存目录要放在性能好的磁盘，定期监控容量
@@ -696,6 +719,7 @@ docker compose up -d
 
 ---
 
+<a id="section-bench"></a>
 ## 测速与链路评估（方案 A/方案 B 通用）
 
 建议在部署前后做一次测速，判断瓶颈在“代理/源站/本地网络”还是“CDN 命中率”。
@@ -751,6 +775,7 @@ time docker pull alpine:3.20
 
 ---
 
+<a id="section-troubleshoot"></a>
 ## 快速排错
 
 - 服务是否可用：
@@ -772,15 +797,19 @@ time docker pull alpine:3.20
 
 ---
 
-后续可按需逐步补充以下内容（非本次立刻展开）：
+<a id="section-next"></a>
+## 后续扩展（规划项）
+
+以下为后续能力规划，本版本不展开具体实现，可按实际需求逐步引入：
 - 访问控制（IP 白名单、WAF、限流）
 - 多地域多节点镜像同步
 - 监控告警（Prometheus/Grafana）
 
-如需扩展这些能力，请告知你的目标规模与现网情况，我可以给出更进一步的生产化方案。
+如需纳入上述能力，请提供目标规模、并发峰值与现网约束，我可输出对应的生产化方案与实施清单。
 
 ---
 
+<a id="section-refs"></a>
 ## 参考与原始地址
 
 - Docker Distribution（registry）源码：https://github.com/distribution/distribution  
