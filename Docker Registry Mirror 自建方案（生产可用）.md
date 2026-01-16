@@ -811,6 +811,10 @@ time docker pull alpine:3.20
   docker pull alpine:3.20
   ```
 
+**注意事项（生产常见误判）**  
+- `/v2/` 返回 `401 Unauthorized` 属正常现象（Registry 可用但未认证）。  
+- 若启用“回源 Header 鉴权”并使用 `certbot` 的 HTTP-01 验证，需要放行 `/.well-known/acme-challenge/`，或改用 DNS 验证，否则证书申请会失败。
+
 ---
 
 <a id="section-next"></a>
