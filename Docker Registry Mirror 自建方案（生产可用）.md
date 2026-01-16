@@ -13,6 +13,7 @@
 - [方案 B：外网服务器 + CDN 加速（生产推荐）](#section-plan-b)
 - [K8S 节点配置（Docker / containerd）](#section-k8s)
 - [运维与优化建议](#section-ops)
+- [访问控制与限流（生产建议）](#section-access)
 - [测速与链路评估（方案 A/方案 B 通用）](#section-bench)
 - [快速排错](#section-troubleshoot)
 - [后续扩展（规划项）](#section-next)
@@ -735,6 +736,70 @@ docker compose up -d
 
 ---
 
+<a id="section-access"></a>
+## 访问控制与限流（生产建议）
+
+以下配置用于控制访问范围与保护源站，避免被滥用或打满带宽。请根据你的部署方式选择组合使用。
+
+### 1) IP 白名单（强烈建议）
+
+- **方案 A（内网）**：仅允许内网网段访问 5000 端口。  
+- **方案 B（CDN）**：仅允许 CDN 回源 IP 段访问源站 80/443。
+
+示例（Ubuntu + UFW，仅作参考）：
+
+```bash
+sudo ufw allow from 192.168.0.0/16 to any port 5000 proto tcp
+sudo ufw deny 5000/tcp
+```
+
+示例（Nginx 内部白名单）：
+
+```nginx
+location /v2/ {
+  allow 192.168.0.0/16;
+  deny all;
+  proxy_pass http://registry:5000;
+}
+```
+
+> 使用 CDN 时，建议改为放行 CDN 回源 IP 段或使用回源 Header 鉴权。
+
+### 2) WAF 放行规则（避免误拦截）
+
+- 放行路径：`/v2/`（含 `blobs`、`manifests`）  
+- 放行方法：`GET`、`HEAD`、`OPTIONS`  
+- 放行头：`Authorization`、`Range`  
+- 关闭 JS Challenge/验证码/机器人拦截（仅对 `/v2/` 路径）
+
+### 3) 限流建议（不要误伤大文件下载）
+
+**原则**：尽量对 `manifests` 限流，对 `blobs` 放宽或不限制。  
+CDN 入口可用边缘限流，源站保持相对宽松。
+
+示例（Nginx，仅对 manifests 限流）：
+
+```nginx
+limit_req_zone $binary_remote_addr zone=manifest_rate:10m rate=20r/s;
+limit_conn_zone $binary_remote_addr zone=addr_conn:10m;
+
+location ~ ^/v2/.+/manifests/ {
+  limit_req zone=manifest_rate burst=40 nodelay;
+  limit_conn addr_conn 50;
+  proxy_pass http://registry:5000;
+}
+
+location ~ ^/v2/.+/blobs/ {
+  # 不限流或仅限速，避免影响大层下载
+  # limit_rate 20m;
+  proxy_pass http://registry:5000;
+}
+```
+
+> 若部署在 CDN 后并需按真实客户端 IP 限流，请配置 `real_ip_header` 与 CDN 的 `set_real_ip_from` 网段。
+
+---
+
 <a id="section-bench"></a>
 ## 测速与链路评估（方案 A/方案 B 通用）
 
@@ -821,7 +886,6 @@ time docker pull alpine:3.20
 ## 后续扩展（规划项）
 
 以下为后续能力规划，本版本不展开具体实现，可按实际需求逐步引入：
-- 访问控制（IP 白名单、WAF、限流）
 - 多地域多节点镜像同步
 - 监控告警（Prometheus/Grafana）
 
