@@ -433,7 +433,7 @@ docker compose up -d
 
 ```nginx
 # 仅示例：把 your-shared-secret 换成你的随机值
-if ($http_x_cdn_auth != "your-shared-secret") { return 403; }
+if ($http_x_cdn_auth != "a9f3b1c8d2e6f4a7c9b0d1e2f3a4b5c6d7e") { return 403; }
 ```
 
 **WAF 放行规则要点：**
