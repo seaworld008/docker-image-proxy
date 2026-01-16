@@ -778,3 +778,13 @@ time docker pull alpine:3.20
 - 监控告警（Prometheus/Grafana）
 
 告诉我你的目标规模，我可以给你更进一步的生产化方案。
+
+---
+
+## 参考与原始地址
+
+- Docker Distribution（registry）源码：https://github.com/distribution/distribution  
+- Docker Hub 镜像（registry:2.8.2）：https://hub.docker.com/_/registry  
+- Docker Hub 官方说明：https://docs.docker.com/docker-hub/  
+- containerd 官方文档：https://containerd.io/docs/  
+- K3s 官方文档：https://docs.k3s.io/
