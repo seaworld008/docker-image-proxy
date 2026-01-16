@@ -90,7 +90,7 @@ http:
 
 ### 3) 写入环境变量（代理 + Docker Hub 账号，必填）
 
-创建 `/data/registry-mirror/.env`（将地址替换成你真实代理；建议注册自己的 Docker Hub 账号并创建 Access Token）：
+创建 `/data/registry-mirror/.env`（将地址替换成你真实代理；示例 `http://192.168.110.210:7897` 为本地 Clash 代理地址；建议注册自己的 Docker Hub 账号并创建 Access Token）：
 
 ```ini
 HTTP_PROXY=http://192.168.110.210:7897
@@ -104,6 +104,8 @@ DOCKERHUB_PASS=your_dockerhub_token
 Docker Hub 对匿名拉取有严格的速率限制（尤其是多节点/高并发时更明显）。  
 镜像代理一旦并发拉取或多人共用，匿名额度很快耗尽，表现为拉取失败或速度极慢。  
 配置账号与 Token 后，镜像代理会使用认证通道拉取，显著提高稳定性，避免被限流。
+
+**Docker Hub 注册地址：** https://hub.docker.com/signup
 
 ### 4) Docker Compose 部署
 
