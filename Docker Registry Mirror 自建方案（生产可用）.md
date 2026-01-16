@@ -529,6 +529,71 @@ crictl info | grep -E "registry|mirror|config_path"
 crictl pull docker.io/library/alpine:3.20
 ```
 
+### C) kubeadm 集群（containerd 为默认）
+
+> kubeadm 默认使用 `containerd`，镜像加速配置必须在 **init/join 之前** 完成并同步到所有节点。
+
+1) 按上面的 **B) containerd** 完成镜像加速配置并重启 `containerd`。  
+2) 初始化/加入集群（显式声明 cri socket，避免歧义）：
+
+```bash
+# 初始化控制面（示例）
+sudo kubeadm init --cri-socket unix:///run/containerd/containerd.sock
+
+# 工作节点加入（示例）
+sudo kubeadm join <control-plane>:6443 --token <token> \
+  --discovery-token-ca-cert-hash sha256:<hash> \
+  --cri-socket unix:///run/containerd/containerd.sock
+```
+
+3) 验证：
+
+```bash
+kubectl get nodes
+crictl pull docker.io/library/alpine:3.20
+```
+
+> 说明：kubeadm 组件镜像主要来自 `registry.k8s.io`，不走 Docker Hub。  
+> 若需加速 `registry.k8s.io`，可按相同方式在 `/etc/containerd/certs.d/registry.k8s.io/hosts.toml` 配置镜像源。
+
+### D) k3s 集群（使用 registries.yaml）
+
+> k3s 使用内置 containerd，**不要直接修改** `config.toml`，应通过 `registries.yaml` 注入配置。
+
+1) 在每个节点创建 `/etc/rancher/k3s/registries.yaml`：
+
+```yaml
+mirrors:
+  docker.io:
+    endpoint:
+      - "https://mirror.example.com"
+```
+
+> 若使用内网 HTTP 镜像（不推荐，仅限内网）：  
+> 把 endpoint 改为 `http://<内网IP>:5000`，并加上：
+
+```yaml
+configs:
+  "<内网IP>:5000":
+    tls:
+      insecure_skip_verify: true
+```
+
+2) 重启服务（按节点角色）：
+
+```bash
+sudo systemctl restart k3s
+# 或
+sudo systemctl restart k3s-agent
+```
+
+3) 验证：
+
+```bash
+crictl info | grep -E "registry|mirror"
+crictl pull docker.io/library/alpine:3.20
+```
+
 ---
 
 ## 运维与优化建议
