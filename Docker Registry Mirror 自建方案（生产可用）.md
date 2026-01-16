@@ -805,8 +805,6 @@ time docker pull alpine:3.20
 - 多地域多节点镜像同步
 - 监控告警（Prometheus/Grafana）
 
-如需纳入上述能力，请提供目标规模、并发峰值与现网约束，我可输出对应的生产化方案与实施清单。
-
 ---
 
 <a id="section-refs"></a>
