@@ -8,6 +8,7 @@
 - [适用规模（中小规模）](#section-scope)
 - [中小规模推荐配置（参考范围）](#section-sizing)
 - [方案前提条件（务必确认）](#section-prereq)
+- [v2.x 与 v3 的差异提醒](#section-v3)
 - [方案 A：使用你已有的代理出海（内网加速）](#section-plan-a)
 - [方案 B：外网服务器 + CDN 加速（生产推荐）](#section-plan-b)
 - [K8S 节点配置（Docker / containerd）](#section-k8s)
@@ -69,6 +70,17 @@
 - **端口开放**：源站开放 80/443，CDN 回源可访问。  
 - **回源地址**：回源应指向**源站 IP 或独立源站域名**（不要与加速域名相同，避免回源环）。  
 - **安全策略**：建议配置回源鉴权或源站白名单，避免源站被直连攻击。
+
+---
+
+<a id="section-v3"></a>
+## v2.x 与 v3 的差异提醒
+
+文档已采用 `registry:3.0.0`（稳定版）。若你从 v2.x 迁移，需重点关注：
+
+- **默认配置路径变化**：v3 默认读取 `/etc/distribution/config.yml`，不再是 v2 常见的 `/etc/docker/registry/config.yml`。本文已按 v3 路径挂载。  
+- **存储驱动精简**：v3 移除了部分旧驱动（如 oss、swift）。本文使用 `filesystem`，不受影响。  
+- **建议查看发行说明**：如有自定义存储或深度定制，请对照 v3 发布说明确认兼容性。
 
 ---
 
@@ -815,6 +827,7 @@ time docker pull alpine:3.20
 ## 参考与原始地址
 
 - Docker Distribution（registry）源码：https://github.com/distribution/distribution  
+- v3.0.0 发布说明：https://github.com/distribution/distribution/releases/tag/v3.0.0  
 - Docker Hub 镜像（registry:3.0.0）：https://hub.docker.com/_/registry  
 - Docker Hub 官方说明：https://docs.docker.com/docker-hub/  
 - containerd 官方文档：https://containerd.io/docs/  
