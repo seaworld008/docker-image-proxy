@@ -11,6 +11,36 @@
 
 ---
 
+## 适用规模（中小规模）
+
+本方案更适合 **中小规模** 场景：小团队/多节点环境、拉取频次中等、缓存规模可控。  
+当出现大规模并发、大量私有镜像、全球多区域高频访问时，建议进一步拆分多源站或使用专用镜像服务。
+
+---
+
+## 方案前提条件（务必确认）
+
+### 方案 A 前提（内网代理出海）
+
+- **稳定代理**：HTTP/HTTPS 代理可用且稳定，支持 TLS 透传（不做 TLS 劫持）。  
+- **网络可达**：代理允许访问 Docker Hub 相关域名（如 `registry-1.docker.io`、`auth.docker.io` 等）。  
+- **内网可达**：内网客户端可访问镜像代理服务的 `5000` 端口。  
+- **系统与资源**：64 位 Linux，建议 2C2G+、SSD/高速盘、磁盘空间视缓存规模而定。  
+- **Docker 环境**：已安装 Docker 与 Docker Compose。  
+- **安全要求**：如使用 HTTP 镜像，仅限内网访问并配置防火墙/ACL。
+
+### 方案 B 前提（海外源站 + CDN）
+
+- **公网源站**：海外服务器可稳定访问外网，带宽与磁盘满足缓存需求。  
+- **域名与 DNS**：已准备域名并可解析到源站或 CDN。  
+- **CDN 能力**：支持大文件缓存、Range 请求、HTTPS 回源。  
+- **证书**：可用 TLS 证书（CDN 证书或源站证书）。  
+- **端口开放**：源站开放 80/443，CDN 回源可访问。  
+- **回源地址**：回源应指向**源站 IP 或独立源站域名**（不要与加速域名相同，避免回源环）。  
+- **安全策略**：建议配置回源鉴权或源站白名单，避免源站被直连攻击。
+
+---
+
 ## 方案 A：使用你已有的代理出海（内网加速）
 
 ### 架构
@@ -210,7 +240,7 @@ services:
     container_name: registry-mirror
     restart: unless-stopped
     environment:
-      # 可选：用于避免 Docker Hub 限流
+      # 建议必配：避免 Docker Hub 拉取限流
       REGISTRY_PROXY_USERNAME: ${DOCKERHUB_USER}
       REGISTRY_PROXY_PASSWORD: ${DOCKERHUB_PASS}
     volumes:
@@ -250,7 +280,7 @@ docker compose up -d
 
 ### 6) CDN 建议配置（通用）
 
-- 回源域名：`mirror.example.com`
+- 回源地址：源站 IP 或独立源站域名（不要与加速域名相同）
 - 回源协议：优先 HTTPS（与 Nginx 443 保持一致）
 - 缓存规则：
   - `/v2/*/blobs/*` 缓存 7-30 天
@@ -267,8 +297,8 @@ docker compose up -d
    - 业务类型：下载/动态静态混合（若可选）
 
 2) **配置回源**  
-   - 回源类型：源站域名  
-   - 回源地址：`mirror.example.com`（或你的源站 IP）  
+   - 回源类型：源站域名/源站 IP  
+   - 回源地址：源站 IP 或独立源站域名（不要与加速域名相同）  
    - 回源协议：HTTPS（优先）  
    - 回源端口：443  
    - 回源 Host 头：保持为 `mirror.example.com`
@@ -303,8 +333,8 @@ docker compose up -d
    - 加速域名：`mirror.example.com`  
    - 业务类型：下载/全站加速  
 2) **源站信息**  
-   - 源站类型：源站域名  
-   - 源站地址：`mirror.example.com`  
+   - 源站类型：源站域名/源站 IP  
+   - 源站地址：源站 IP 或独立源站域名  
    - 协议：HTTPS，端口 443  
    - 回源 Host：`mirror.example.com`  
 3) **HTTPS 配置**  
@@ -323,8 +353,8 @@ docker compose up -d
    - 加速域名：`mirror.example.com`  
    - 业务类型：下载/静态加速  
 2) **源站配置**  
-   - 源站类型：自有源  
-   - 源站地址：`mirror.example.com`  
+   - 源站类型：自有源（源站域名/源站 IP）  
+   - 源站地址：源站 IP 或独立源站域名  
    - 回源协议：HTTPS  
    - 回源 Host：`mirror.example.com`  
 3) **HTTPS 配置**  
@@ -343,8 +373,8 @@ docker compose up -d
    - 加速域名：`mirror.example.com`  
    - 业务类型：下载加速  
 2) **源站设置**  
-   - 源站类型：源站域名  
-   - 源站地址：`mirror.example.com`  
+   - 源站类型：源站域名/源站 IP  
+   - 源站地址：源站 IP 或独立源站域名  
    - 回源协议：HTTPS，端口 443  
    - Host 头：`mirror.example.com`  
 3) **HTTPS 配置**  
@@ -672,6 +702,10 @@ time docker pull alpine:3.20
 
 - 服务是否可用：
   ```bash
+  # 方案 A（内网 HTTP）
+  curl -I http://<内网IP>:5000/v2/
+
+  # 方案 B（CDN HTTPS）
   curl -I https://mirror.example.com/v2/
   ```
 - Docker 是否使用镜像加速：
