@@ -2,6 +2,53 @@
 
 本文提供两个可直接落地的 Docker Hub 镜像加速方案，均基于官方 `registry:3` 的 **proxy mirror** 模式，可缓存已拉取的镜像层，显著提升国内拉取速度与稳定性。
 
+## 当前推荐落地版（2026-06-29 核验）
+
+本仓库已补充 `deploy/` 部署包，推荐将其同步到硅谷源站的 `/data/docker-image-proxy/` 目录后使用 Docker Compose 部署。部署包固定使用当前核验的稳定镜像版本：
+
+- Registry：`registry:3.1.1`
+- Nginx：`nginx:1.30.3-alpine`
+
+部署包中的 Compose 已进一步固定到 manifest digest：
+
+- `registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33`
+- `nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1`
+
+推荐生产形态：
+
+- 源站只运行 Docker Hub pull-through cache，不混用私有镜像仓库写入能力。
+- 所有持久化数据、配置和日志都放在 `/data/docker-image-proxy/` 下，便于备份、迁移和磁盘治理。
+- `registry` 不直接暴露公网端口，只通过同 compose 网络内的 `nginx` 访问。
+- 部署包默认只监听 `127.0.0.1:5000`，避免把未鉴权 mirror 暴露到公网；需要公网使用时先接入现有 Nginx/CDN 并配置访问控制。
+- 公网或跨地域访问时，优先使用 HTTPS/CDN/WAF，并对源站做 CDN 回源 IP 白名单或回源 Header 鉴权。
+- 如配置 Docker Hub 用户名/Token，只使用专用低权限账号；若该账号可访问私有镜像，必须先给 mirror 加访问控制，否则会把该账号可访问的私有资源暴露给 mirror 使用者。
+- 使用 `registry-mirrors` 只能加速 Docker Hub（`docker.io`），`registry.k8s.io`、`quay.io`、私有仓库需要分别配置各自镜像源或代理策略。
+
+快速部署包位置：
+
+```bash
+/data/docker-image-proxy/
+├── docker-compose.yml
+├── docker-compose.with-auth.yml
+├── .env
+├── config/registry/config.yml
+├── nginx/nginx.conf
+├── data/registry/
+├── logs/nginx/
+└── scripts/validate.sh
+```
+
+本方案已在硅谷源站按独立 Compose 方式完成真实环境验证：
+
+```bash
+curl -fsSI http://127.0.0.1:5000/v2/
+curl -fsSI -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+  http://127.0.0.1:5000/v2/library/alpine/manifests/3.20
+docker pull 127.0.0.1:5000/library/alpine:3.20
+```
+
+验证结果：`/v2/` 返回 200，`library/alpine:3.20` manifest 返回 200，真实 `docker pull` 成功，缓存目录写入 `/data/docker-image-proxy/data/registry/`。
+
 ## 目录
 
 - [方案选择](#section-choice)
@@ -32,7 +79,7 @@
 <a id="section-scope"></a>
 ## 适用规模（中小规模）
 
-本方案更适合 **中小规模** 场景：小团队/多节点环境、拉取频次中等、缓存规模可控。  
+本方案更适合 **中小规模** 场景：小团队/多节点环境、拉取频次中等、缓存规模可控。
 当出现大规模并发、大量私有镜像、全球多区域高频访问时，建议进一步拆分多源站或使用专用镜像服务。
 
 ---
@@ -42,10 +89,10 @@
 
 以下为经验范围，便于快速落地，实际按并发量与镜像体积调整。
 
-- **方案 A（内网代理）**：2C/2-4G，磁盘 100-300GB，内网带宽 1Gbps+  
-- **方案 B（海外源站）**：2-4C/4-8G，磁盘 200-500GB，公网带宽 50-200Mbps  
-- **缓存策略**：`proxy.ttl` 168h；CDN `blobs` 7-30 天、`manifests` 1-10 分钟  
-- **并发与稳定**：避免超高并发短时间集中拉取，可配合预热/分批拉取  
+- **方案 A（内网代理）**：2C/2-4G，磁盘 100-300GB，内网带宽 1Gbps+
+- **方案 B（海外源站）**：2-4C/4-8G，磁盘 200-500GB，公网带宽 50-200Mbps
+- **缓存策略**：`proxy.ttl` 168h；CDN `blobs` 7-30 天、`manifests` 1-10 分钟
+- **并发与稳定**：避免超高并发短时间集中拉取，可配合预热/分批拉取
 - **清理周期**：每 2-4 周评估一次磁盘空间，必要时执行 GC
 
 ---
@@ -55,21 +102,21 @@
 
 ### 方案 A 前提（内网代理出海）
 
-- **稳定代理**：可用且稳定的出网通道，例如机场订阅、企业 VPN、可访问外网的代理/VPN 网络；要求支持 HTTP/HTTPS 代理或可提供可用的出网网关，并且支持 TLS 透传（不做 TLS 劫持）。  
-- **网络可达**：代理允许访问 Docker Hub 相关域名（如 `registry-1.docker.io`、`auth.docker.io` 等）。  
-- **内网可达**：内网客户端可访问镜像代理服务的 `5000` 端口。  
-- **系统与资源**：64 位 Linux，建议 2C2G+、SSD/高速盘、磁盘空间视缓存规模而定。  
-- **Docker 环境**：已安装 Docker 与 Docker Compose。  
+- **稳定代理**：可用且稳定的出网通道，例如机场订阅、企业 VPN、可访问外网的代理/VPN 网络；要求支持 HTTP/HTTPS 代理或可提供可用的出网网关，并且支持 TLS 透传（不做 TLS 劫持）。
+- **网络可达**：代理允许访问 Docker Hub 相关域名（如 `registry-1.docker.io`、`auth.docker.io` 等）。
+- **内网可达**：内网客户端可访问镜像代理服务的 `5000` 端口。
+- **系统与资源**：64 位 Linux，建议 2C2G+、SSD/高速盘、磁盘空间视缓存规模而定。
+- **Docker 环境**：已安装 Docker 与 Docker Compose。
 - **安全要求**：如使用 HTTP 镜像，仅限内网访问并配置防火墙/ACL。
 
 ### 方案 B 前提（海外源站 + CDN）
 
-- **公网源站**：海外服务器可稳定访问外网，带宽与磁盘满足缓存需求。  
-- **域名与 DNS**：已准备域名并可解析到源站或 CDN。  
-- **CDN 能力**：支持大文件缓存、Range 请求、HTTPS 回源。  
-- **证书**：可用 TLS 证书（CDN 证书或源站证书）。  
-- **端口开放**：源站开放 80/443，CDN 回源可访问。  
-- **回源地址**：回源应指向**源站 IP 或独立源站域名**（不要与加速域名相同，避免回源环）。  
+- **公网源站**：海外服务器可稳定访问外网，带宽与磁盘满足缓存需求。
+- **域名与 DNS**：已准备域名并可解析到源站或 CDN。
+- **CDN 能力**：支持大文件缓存、Range 请求、HTTPS 回源。
+- **证书**：可用 TLS 证书（CDN 证书或源站证书）。
+- **端口开放**：源站开放 80/443，CDN 回源可访问。
+- **回源地址**：回源应指向**源站 IP 或独立源站域名**（不要与加速域名相同，避免回源环）。
 - **安全策略**：建议配置回源鉴权或源站白名单，避免源站被直连攻击。
 
 ---
@@ -77,10 +124,10 @@
 <a id="section-v3"></a>
 ## v2.x 与 v3 的差异提醒
 
-文档已采用 `registry:3.0.0`（稳定版）。若你从 v2.x 迁移，需重点关注：
+文档已采用 `registry:3.1.1`（稳定版）。若你从 v2.x 迁移，需重点关注：
 
-- **默认配置路径变化**：v3 默认读取 `/etc/distribution/config.yml`，不再是 v2 常见的 `/etc/docker/registry/config.yml`。本文已按 v3 路径挂载。  
-- **存储驱动精简**：v3 移除了部分旧驱动（如 oss、swift）。本文使用 `filesystem`，不受影响。  
+- **默认配置路径变化**：v3 默认读取 `/etc/distribution/config.yml`，不再是 v2 常见的 `/etc/docker/registry/config.yml`。本文已按 v3 路径挂载。
+- **存储驱动精简**：v3 移除了部分旧驱动（如 oss、swift）。本文使用 `filesystem`，不受影响。
 - **建议查看发行说明**：如有自定义存储或深度定制，请对照 v3 发布说明确认兼容性。
 
 ---
@@ -95,13 +142,13 @@
 ### 1) 目录准备
 
 ```bash
-mkdir -p /data/registry-mirror/{data,config}
-cd /data/registry-mirror
+mkdir -p /data/docker-image-proxy/{data,config}
+cd /data/docker-image-proxy
 ```
 
 ### 2) 写入 Registry 配置
 
-创建 `/data/registry-mirror/config/config.yml`：
+创建 `/data/docker-image-proxy/config/config.yml`：
 
 ```yaml
 version: 0.1
@@ -125,7 +172,7 @@ http:
 
 ### 3) 写入环境变量（代理 + Docker Hub 账号，必填）
 
-创建 `/data/registry-mirror/.env`（将地址替换成你真实代理；示例 `http://192.168.110.210:7897` 为本地 Clash 代理地址；建议注册自己的 Docker Hub 账号并创建 Access Token）：
+创建 `/data/docker-image-proxy/.env`（将地址替换成你真实代理；示例 `http://192.168.110.210:7897` 为本地 Clash 代理地址；建议注册自己的 Docker Hub 账号并创建 Access Token）：
 
 ```ini
 HTTP_PROXY=http://192.168.110.210:7897
@@ -135,21 +182,21 @@ DOCKERHUB_USER=your_dockerhub_user
 DOCKERHUB_PASS=your_dockerhub_token
 ```
 
-**为什么必填？**  
-Docker Hub 对匿名拉取有严格的速率限制（尤其是多节点/高并发时更明显）。  
-镜像代理一旦并发拉取或多人共用，匿名额度很快耗尽，表现为拉取失败或速度极慢。  
+**为什么必填？**
+Docker Hub 对匿名拉取有严格的速率限制（尤其是多节点/高并发时更明显）。
+镜像代理一旦并发拉取或多人共用，匿名额度很快耗尽，表现为拉取失败或速度极慢。
 配置账号与 Token 后，镜像代理会使用认证通道拉取，显著提高稳定性，避免被限流。
 
 **Docker Hub 注册地址：** https://hub.docker.com/signup
 
 ### 4) Docker Compose 部署
 
-创建 `/data/registry-mirror/docker-compose.yml`：
+创建 `/data/docker-image-proxy/docker-compose.yml`：
 
 ```yaml
 services:
   registry:
-    image: registry:3.0.0
+    image: registry:3.1.1
     container_name: registry-mirror
     restart: unless-stopped
     ports:
@@ -215,13 +262,13 @@ docker pull hello-world
 ### 2) 目录准备
 
 ```bash
-mkdir -p /data/registry-mirror/{data,config,nginx}
-cd /data/registry-mirror
+mkdir -p /data/docker-image-proxy/{data,config,nginx}
+cd /data/docker-image-proxy
 ```
 
 ### 3) Registry 配置
 
-创建 `/data/registry-mirror/config/config.yml`：
+创建 `/data/docker-image-proxy/config/config.yml`：
 
 ```yaml
 version: 0.1
@@ -245,7 +292,7 @@ http:
 
 ### 4) Nginx 配置（TLS 终止 + 反代）
 
-创建 `/data/registry-mirror/nginx/nginx.conf`：
+创建 `/data/docker-image-proxy/nginx/nginx.conf`：
 
 ```nginx
 events {}
@@ -279,16 +326,16 @@ http {
 }
 ```
 
-> 证书准备：你可以用 `certbot` 或 CDN 提供的源站证书。证书文件放在 `/data/registry-mirror/nginx/ssl/` 目录。
+> 证书准备：你可以用 `certbot` 或 CDN 提供的源站证书。证书文件放在 `/data/docker-image-proxy/nginx/ssl/` 目录。
 
 ### 5) Docker Compose 部署
 
-创建 `/data/registry-mirror/docker-compose.yml`：
+创建 `/data/docker-image-proxy/docker-compose.yml`：
 
 ```yaml
 services:
   registry:
-    image: registry:3.0.0
+    image: registry:3.1.1
     container_name: registry-mirror
     restart: unless-stopped
     environment:
@@ -300,7 +347,7 @@ services:
       - ./config/config.yml:/etc/distribution/config.yml:ro
 
   nginx:
-    image: nginx:1.27
+    image: nginx:1.30.3-alpine
     container_name: registry-nginx
     restart: unless-stopped
     ports:
@@ -313,21 +360,47 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
 ```
 
-创建 `/data/registry-mirror/.env`（建议必配，避免 Docker Hub 拉取限流）：
+创建 `/data/docker-image-proxy/.env`（建议必配，避免 Docker Hub 拉取限流）：
 
 ```ini
 DOCKERHUB_USER=your_dockerhub_user
 DOCKERHUB_PASS=your_dockerhub_token
 ```
 
-**为什么建议必配？**  
-海外源站作为公共入口，回源拉取更频繁；匿名额度容易被快速耗尽。  
+**为什么建议必配？**
+海外源站作为公共入口，回源拉取更频繁；匿名额度容易被快速耗尽。
 配置账号与 Token 可显著提高回源稳定性，减少 429/拉取失败问题。
 
 启动：
 
 ```bash
 docker compose up -d
+```
+
+若使用本仓库 `deploy/` 部署包，可直接：
+
+```bash
+mkdir -p /data/docker-image-proxy
+cd /data/docker-image-proxy
+cp .env.example .env
+sed -i "s/replace-with-64-hex-chars/$(openssl rand -hex 32)/" .env
+docker compose pull
+docker compose up -d
+chmod +x ./scripts/validate.sh
+./scripts/validate.sh
+```
+
+也可以在 `/data/docker-image-proxy/` 下直接运行部署脚本：
+
+```bash
+chmod +x ./scripts/install-or-update.sh
+./scripts/install-or-update.sh
+```
+
+如需启用 Docker Hub 认证回源，先在 `.env` 中填写专用低权限账号/token，再使用：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.with-auth.yml up -d
 ```
 
 ### 6) CDN 建议配置（通用）
@@ -344,35 +417,35 @@ docker compose up -d
 
 > 不同云厂商界面略有差异，但核心步骤一致，按下列要点设置即可。
 
-1) **新增加速域名**  
-   - 加速域名：`mirror.example.com`  
+1) **新增加速域名**
+   - 加速域名：`mirror.example.com`
    - 业务类型：下载/动态静态混合（若可选）
 
-2) **配置回源**  
-   - 回源类型：源站域名/源站 IP  
-   - 回源地址：源站 IP 或独立源站域名（不要与加速域名相同）  
-   - 回源协议：HTTPS（优先）  
-   - 回源端口：443  
+2) **配置回源**
+   - 回源类型：源站域名/源站 IP
+   - 回源地址：源站 IP 或独立源站域名（不要与加速域名相同）
+   - 回源协议：HTTPS（优先）
+   - 回源端口：443
    - 回源 Host 头：保持为 `mirror.example.com`
 
-3) **配置 HTTPS**  
-   - 证书来源：上传源站证书或 CDN 托管证书  
-   - 访问协议：仅 HTTPS 或 HTTP 自动跳转 HTTPS  
+3) **配置 HTTPS**
+   - 证书来源：上传源站证书或 CDN 托管证书
+   - 访问协议：仅 HTTPS 或 HTTP 自动跳转 HTTPS
    - TLS 版本：建议 TLS 1.2+
 
-4) **配置缓存规则**  
-   - 路径规则 `/v2/*/blobs/*`：缓存 7-30 天  
-   - 路径规则 `/v2/*/manifests/*`：缓存 1-10 分钟  
-   - 默认规则：可设置较短缓存或不缓存  
+4) **配置缓存规则**
+   - 路径规则 `/v2/*/blobs/*`：缓存 7-30 天
+   - 路径规则 `/v2/*/manifests/*`：缓存 1-10 分钟
+   - 默认规则：可设置较短缓存或不缓存
    - 缓存键：保留查询参数（默认即可）
 
-5) **请求/响应设置**  
-   - 允许 Range 请求  
-   - 透传/保留响应头：`Docker-Distribution-API-Version`  
+5) **请求/响应设置**
+   - 允许 Range 请求
+   - 透传/保留响应头：`Docker-Distribution-API-Version`
    - 允许方法：GET、HEAD、OPTIONS（通常已默认允许）
 
-6) **配置回源鉴权（可选）**  
-   - 若启用 WAF/鉴权，注意放行 `/v2/` 路径  
+6) **配置回源鉴权（可选）**
+   - 若启用 WAF/鉴权，注意放行 `/v2/` 路径
    - 如需限制来源，可用 IP 白名单或签名回源
 
 ### 6.2) 各云厂商控制台配置示例
@@ -381,79 +454,79 @@ docker compose up -d
 
 #### 阿里云 CDN
 
-1) CDN 控制台 → **域名管理** → **添加域名**  
-   - 加速域名：`mirror.example.com`  
-   - 业务类型：下载/全站加速  
-2) **源站信息**  
-   - 源站类型：源站域名/源站 IP  
-   - 源站地址：源站 IP 或独立源站域名  
-   - 协议：HTTPS，端口 443  
-   - 回源 Host：`mirror.example.com`  
-3) **HTTPS 配置**  
-   - 上传证书或选择托管证书  
-   - 强制 HTTPS（或 HTTP→HTTPS）  
-4) **缓存配置**  
-   - 目录 `/v2/*/blobs/*` 缓存 7-30 天  
-   - 目录 `/v2/*/manifests/*` 缓存 1-10 分钟  
-5) **高级设置**  
-   - 允许 Range 请求  
+1) CDN 控制台 → **域名管理** → **添加域名**
+   - 加速域名：`mirror.example.com`
+   - 业务类型：下载/全站加速
+2) **源站信息**
+   - 源站类型：源站域名/源站 IP
+   - 源站地址：源站 IP 或独立源站域名
+   - 协议：HTTPS，端口 443
+   - 回源 Host：`mirror.example.com`
+3) **HTTPS 配置**
+   - 上传证书或选择托管证书
+   - 强制 HTTPS（或 HTTP→HTTPS）
+4) **缓存配置**
+   - 目录 `/v2/*/blobs/*` 缓存 7-30 天
+   - 目录 `/v2/*/manifests/*` 缓存 1-10 分钟
+5) **高级设置**
+   - 允许 Range 请求
    - 响应头保留：`Docker-Distribution-API-Version`
 
 #### 腾讯云 CDN
 
-1) CDN 控制台 → **域名管理** → **添加域名**  
-   - 加速域名：`mirror.example.com`  
-   - 业务类型：下载/静态加速  
-2) **源站配置**  
-   - 源站类型：自有源（源站域名/源站 IP）  
-   - 源站地址：源站 IP 或独立源站域名  
-   - 回源协议：HTTPS  
-   - 回源 Host：`mirror.example.com`  
-3) **HTTPS 配置**  
-   - 上传证书或选择托管证书  
-   - 开启 HTTPS 访问与强制跳转  
-4) **缓存规则**  
-   - `/v2/*/blobs/*`：7-30 天  
-   - `/v2/*/manifests/*`：1-10 分钟  
-5) **回源与头部**  
-   - 开启 Range 回源  
+1) CDN 控制台 → **域名管理** → **添加域名**
+   - 加速域名：`mirror.example.com`
+   - 业务类型：下载/静态加速
+2) **源站配置**
+   - 源站类型：自有源（源站域名/源站 IP）
+   - 源站地址：源站 IP 或独立源站域名
+   - 回源协议：HTTPS
+   - 回源 Host：`mirror.example.com`
+3) **HTTPS 配置**
+   - 上传证书或选择托管证书
+   - 开启 HTTPS 访问与强制跳转
+4) **缓存规则**
+   - `/v2/*/blobs/*`：7-30 天
+   - `/v2/*/manifests/*`：1-10 分钟
+5) **回源与头部**
+   - 开启 Range 回源
    - 保留响应头：`Docker-Distribution-API-Version`
 
 #### 华为云 CDN
 
-1) CDN 控制台 → **域名管理** → **添加域名**  
-   - 加速域名：`mirror.example.com`  
-   - 业务类型：下载加速  
-2) **源站设置**  
-   - 源站类型：源站域名/源站 IP  
-   - 源站地址：源站 IP 或独立源站域名  
-   - 回源协议：HTTPS，端口 443  
-   - Host 头：`mirror.example.com`  
-3) **HTTPS 配置**  
-   - 上传证书或启用托管证书  
-   - 强制 HTTPS  
-4) **缓存规则**  
-   - `/v2/*/blobs/*`：7-30 天  
-   - `/v2/*/manifests/*`：1-10 分钟  
-5) **高级设置**  
-   - Range 请求：启用  
+1) CDN 控制台 → **域名管理** → **添加域名**
+   - 加速域名：`mirror.example.com`
+   - 业务类型：下载加速
+2) **源站设置**
+   - 源站类型：源站域名/源站 IP
+   - 源站地址：源站 IP 或独立源站域名
+   - 回源协议：HTTPS，端口 443
+   - Host 头：`mirror.example.com`
+3) **HTTPS 配置**
+   - 上传证书或启用托管证书
+   - 强制 HTTPS
+4) **缓存规则**
+   - `/v2/*/blobs/*`：7-30 天
+   - `/v2/*/manifests/*`：1-10 分钟
+5) **高级设置**
+   - Range 请求：启用
    - 响应头保留：`Docker-Distribution-API-Version`
 
 #### Cloudflare
 
-1) Cloudflare 控制台 → **Websites** → 选择域名  
-2) **DNS**  
-   - 添加 `mirror.example.com` 记录指向源站 IP（A/AAAA）  
-   - 记录需开启代理（橙云）  
-3) **SSL/TLS**  
-   - 模式选择 **Full (strict)**  
-   - 上传源站证书或用 Cloudflare Origin CA  
-4) **Caching**  
-   - 页面规则或缓存规则  
-   - `*/v2/*/blobs/*`：缓存 7-30 天  
-   - `*/v2/*/manifests/*`：缓存 1-10 分钟  
-5) **Network**  
-   - 保持 Range 请求支持（默认支持）  
+1) Cloudflare 控制台 → **Websites** → 选择域名
+2) **DNS**
+   - 添加 `mirror.example.com` 记录指向源站 IP（A/AAAA）
+   - 记录需开启代理（橙云）
+3) **SSL/TLS**
+   - 模式选择 **Full (strict)**
+   - 上传源站证书或用 Cloudflare Origin CA
+4) **Caching**
+   - 页面规则或缓存规则
+   - `*/v2/*/blobs/*`：缓存 7-30 天
+   - `*/v2/*/manifests/*`：缓存 1-10 分钟
+5) **Network**
+   - 保持 Range 请求支持（默认支持）
    - 如启用 WAF，自定义规则放行 `/v2/`
 
 ### 6.3) 源站鉴权/回源签名/WAF 放行规则（开启时）
@@ -461,12 +534,12 @@ docker compose up -d
 目标：**只允许 CDN 回源访问源站**，拦截外部直连，同时不影响 Docker 客户端拉取。
 
 **推荐方案（二选一即可）：**
-- 方案 1：**回源鉴权/签名 + 源站校验**  
+- 方案 1：**回源鉴权/签名 + 源站校验**
   CDN 回源时附加自定义 Header（或签名参数），源站只接受带该 Header 的请求。
-- 方案 2：**源站 IP 白名单**  
+- 方案 2：**源站 IP 白名单**
   源站防火墙仅放行 CDN 回源 IP 段，其它一律拒绝。
 
-**Nginx 源站校验示例（Header 方式）**  
+**Nginx 源站校验示例（Header 方式）**
 在 `server` 中加入：
 
 ```nginx
@@ -522,23 +595,23 @@ http {
 
 **各云厂商配置指引（简要）：**
 
-- 阿里云 CDN：  
-  - 位置：域名管理 → 访问控制/安全 → **回源鉴权**  
-  - 方式：自定义 Header 或 Token 鉴权  
+- 阿里云 CDN：
+  - 位置：域名管理 → 访问控制/安全 → **回源鉴权**
+  - 方式：自定义 Header 或 Token 鉴权
   - WAF：放行 `/v2/`，关闭挑战/验证码
 
-- 腾讯云 CDN：  
-  - 位置：域名管理 → 安全配置 → **回源鉴权**  
-  - 方式：自定义回源 Header 或签名参数  
+- 腾讯云 CDN：
+  - 位置：域名管理 → 安全配置 → **回源鉴权**
+  - 方式：自定义回源 Header 或签名参数
   - WAF：规则放行 `/v2/`，允许 Range
 
-- 华为云 CDN：  
-  - 位置：域名管理 → 安全设置 → **回源鉴权**  
-  - 方式：自定义 Header/Token 鉴权  
+- 华为云 CDN：
+  - 位置：域名管理 → 安全设置 → **回源鉴权**
+  - 方式：自定义 Header/Token 鉴权
   - WAF：放行 `/v2/`，关闭拦截类规则
 
-- Cloudflare：  
-  - 回源保护：**Authenticated Origin Pulls** 或 **自定义 Header**  
+- Cloudflare：
+  - 回源保护：**Authenticated Origin Pulls** 或 **自定义 Header**
   - WAF：Firewall Rules 放行 `/v2/`，禁用 Bot Fight/JS Challenge
 
 ### 7) 配置 Docker 客户端使用镜像加速
@@ -634,7 +707,7 @@ server = "https://registry-1.docker.io"
   capabilities = ["pull", "resolve"]
 ```
 
-> 若使用内网 HTTP 镜像（不推荐，仅限内网）：  
+> 若使用内网 HTTP 镜像（不推荐，仅限内网）：
 > 将 `host` 改为 `http://<内网IP>:5000`，并确保内网访问可达。
 
 4) 重启服务：
@@ -655,7 +728,7 @@ crictl pull docker.io/library/alpine:3.20
 
 > kubeadm 默认使用 `containerd`，镜像加速配置必须在 **init/join 之前** 完成并同步到所有节点。
 
-1) 按上面的 **B) containerd** 完成镜像加速配置并重启 `containerd`。  
+1) 按上面的 **B) containerd** 完成镜像加速配置并重启 `containerd`。
 2) 初始化/加入集群（显式声明 cri socket，避免歧义）：
 
 ```bash
@@ -675,7 +748,7 @@ kubectl get nodes
 crictl pull docker.io/library/alpine:3.20
 ```
 
-> 说明：kubeadm 组件镜像主要来自 `registry.k8s.io`，不走 Docker Hub。  
+> 说明：kubeadm 组件镜像主要来自 `registry.k8s.io`，不走 Docker Hub。
 > 若需加速 `registry.k8s.io`，可按相同方式在 `/etc/containerd/certs.d/registry.k8s.io/hosts.toml` 配置镜像源。
 
 ### D) k3s 集群（使用 registries.yaml）
@@ -691,7 +764,7 @@ mirrors:
       - "https://mirror.example.com"
 ```
 
-> 若使用内网 HTTP 镜像（不推荐，仅限内网）：  
+> 若使用内网 HTTP 镜像（不推荐，仅限内网）：
 > 把 endpoint 改为 `http://<内网IP>:5000`，并加上：
 
 ```yaml
@@ -728,9 +801,9 @@ crictl pull docker.io/library/alpine:3.20
 ```bash
 docker compose down
 docker run --rm \
-  -v /data/registry-mirror/data:/var/lib/registry \
-  -v /data/registry-mirror/config/config.yml:/etc/distribution/config.yml:ro \
-  registry:3.0.0 garbage-collect /etc/distribution/config.yml
+  -v /data/docker-image-proxy/data:/var/lib/registry \
+  -v /data/docker-image-proxy/config/config.yml:/etc/distribution/config.yml:ro \
+  registry:3.1.1 garbage-collect /etc/distribution/config.yml
 docker compose up -d
 ```
 
@@ -743,7 +816,7 @@ docker compose up -d
 
 ### 1) IP 白名单（强烈建议）
 
-- **方案 A（内网）**：仅允许内网网段访问 5000 端口。  
+- **方案 A（内网）**：仅允许内网网段访问 5000 端口。
 - **方案 B（CDN）**：仅允许 CDN 回源 IP 段访问源站 80/443。
 
 示例（Ubuntu + UFW，仅作参考）：
@@ -767,14 +840,14 @@ location /v2/ {
 
 ### 2) WAF 放行规则（避免误拦截）
 
-- 放行路径：`/v2/`（含 `blobs`、`manifests`）  
-- 放行方法：`GET`、`HEAD`、`OPTIONS`  
-- 放行头：`Authorization`、`Range`  
+- 放行路径：`/v2/`（含 `blobs`、`manifests`）
+- 放行方法：`GET`、`HEAD`、`OPTIONS`
+- 放行头：`Authorization`、`Range`
 - 关闭 JS Challenge/验证码/机器人拦截（仅对 `/v2/` 路径）
 
 ### 3) 限流建议（不要误伤大文件下载）
 
-**原则**：尽量对 `manifests` 限流，对 `blobs` 放宽或不限制。  
+**原则**：尽量对 `manifests` 限流，对 `blobs` 放宽或不限制。
 CDN 入口可用边缘限流，源站保持相对宽松。
 
 示例（Nginx，仅对 manifests 限流）：
@@ -876,8 +949,8 @@ time docker pull alpine:3.20
   docker pull alpine:3.20
   ```
 
-**注意事项（生产常见误判）**  
-- `/v2/` 返回 `401 Unauthorized` 属正常现象（Registry 可用但未认证）。  
+**注意事项（生产常见误判）**
+- `/v2/` 返回 `401 Unauthorized` 属正常现象（Registry 可用但未认证）。
 - 若启用“回源 Header 鉴权”并使用 `certbot` 的 HTTP-01 验证，需要放行 `/.well-known/acme-challenge/`，或改用 DNS 验证，否则证书申请会失败。
 
 ---
@@ -894,9 +967,9 @@ time docker pull alpine:3.20
 <a id="section-refs"></a>
 ## 参考与原始地址
 
-- Docker Distribution（registry）源码：https://github.com/distribution/distribution  
-- v3.0.0 发布说明：https://github.com/distribution/distribution/releases/tag/v3.0.0  
-- Docker Hub 镜像（registry:3.0.0）：https://hub.docker.com/_/registry  
-- Docker Hub 官方说明：https://docs.docker.com/docker-hub/  
-- containerd 官方文档：https://containerd.io/docs/  
+- Docker Distribution（registry）源码：https://github.com/distribution/distribution
+- v3.1.1 发布说明：https://github.com/distribution/distribution/releases/tag/v3.1.1
+- Docker Hub 镜像（registry:3.1.1）：https://hub.docker.com/_/registry
+- Docker Hub 官方说明：https://docs.docker.com/docker-hub/
+- containerd 官方文档：https://containerd.io/docs/
 - K3s 官方文档：https://docs.k3s.io/
