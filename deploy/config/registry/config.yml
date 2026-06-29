@@ -1,0 +1,40 @@
+version: 0.1
+
+log:
+  level: info
+  formatter: text
+  fields:
+    service: docker-image-proxy
+
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+    maxthreads: 100
+  delete:
+    enabled: true
+  maintenance:
+    uploadpurging:
+      enabled: true
+      age: 168h
+      interval: 24h
+      dryrun: false
+
+proxy:
+  remoteurl: https://registry-1.docker.io
+  ttl: 168h
+
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+  debug:
+    addr: :5001
+    prometheus:
+      enabled: true
+      path: /metrics
+
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3

@@ -1,0 +1,51 @@
+name: docker-image-proxy
+
+services:
+  registry:
+    image: registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33
+    container_name: docker-image-proxy-registry
+    restart: unless-stopped
+    environment:
+      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET:?set REGISTRY_HTTP_SECRET in .env}
+      OTEL_TRACES_EXPORTER: none
+    expose:
+      - "5000"
+    volumes:
+      - ./data/registry:/var/lib/registry
+      - ./config/registry/config.yml:/etc/distribution/config.yml:ro
+    networks:
+      - docker-image-proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  nginx:
+    image: nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
+    container_name: docker-image-proxy-nginx
+    restart: unless-stopped
+    depends_on:
+      - registry
+    ports:
+      - "${PROXY_BIND_ADDR:-127.0.0.1}:${PROXY_HTTP_PORT:-5000}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - docker-image-proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/healthz && wget -q --spider http://127.0.0.1/v2/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+networks:
+  docker-image-proxy:
+    name: docker-image-proxy
