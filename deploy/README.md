@@ -50,3 +50,19 @@ curl -fsSI -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
   http://127.0.0.1:5000/v2/library/alpine/manifests/3.20
 docker pull 127.0.0.1:5000/library/alpine:3.20
 ```
+
+## Documentation
+
+- Repository overview: [../README.md](../README.md)
+- Documentation index: [../docs/README.md](../docs/README.md)
+- Docker/Kubernetes client usage: [../docs/client-usage.md](../docs/client-usage.md)
+- CDN and security entrypoint: [../docs/cdn-and-security.md](../docs/cdn-and-security.md)
+- Operations, upgrades, rollback and GC: [../docs/operations.md](../docs/operations.md)
+- Production case with simulated values: [../docs/production-case-silicon-valley.md](../docs/production-case-silicon-valley.md)
+
+## Placeholder Policy
+
+Public docs use simulated values such as `203.0.113.10`, `mirror.example.com`,
+`10022`, `/path/to/id_ed25519`, and `replace-with-your-token`. Replace them in
+your own environment, but never commit real server IPs, SSH details, tokens, or
+`.env` files to this repository.
