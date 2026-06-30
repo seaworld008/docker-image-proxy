@@ -27,7 +27,7 @@
 ### 我要走 CDN 和安全收口
 
 1. 选择 [入口模式](cdn-and-security.md#入口模式选择)。
-2. 配置 DNS、CDN、缓存规则和 WAF 放行。
+2. 按 [CDN 厂商配置手册](cdn-provider-setup.md) 配置 DNS、CDN、缓存规则和 WAF 放行。
 3. 用源站安全组或回源鉴权保护源站。
 4. 用 [CDN 上线验证](cdn-and-security.md#cdn-上线验证) 做真实拉取测试。
 
@@ -39,6 +39,7 @@
 | [部署包说明](../deploy/README.md) | `deploy/` 目录如何复制、启动和验证 |
 | [客户端接入手册](client-usage.md) | Docker、Kubernetes Docker CRI、containerd、k3s、RKE2 配置 |
 | [CDN 和安全入口](cdn-and-security.md) | 域名、CDN、WAF、源站保护、缓存规则 |
+| [CDN 厂商配置手册](cdn-provider-setup.md) | 阿里云、腾讯云、华为云、AWS CloudFront、Cloudflare 逐步配置 |
 | [日常运维手册](operations.md) | 安装、升级、回滚、日志、GC、备份、排错 |
 | [硅谷源站案例](production-case-silicon-valley.md) | 真实部署经验，用模拟数据展示可替换字段 |
 | [AI agent 说明](../AGENTS.md) | 给自动化 agent 的仓库结构、约束和验证路径 |

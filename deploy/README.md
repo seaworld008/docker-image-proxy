@@ -57,6 +57,7 @@ docker pull 127.0.0.1:5000/library/alpine:3.20
 - Documentation index: [../docs/README.md](../docs/README.md)
 - Docker/Kubernetes client usage: [../docs/client-usage.md](../docs/client-usage.md)
 - CDN and security entrypoint: [../docs/cdn-and-security.md](../docs/cdn-and-security.md)
+- CDN provider setup: [../docs/cdn-provider-setup.md](../docs/cdn-provider-setup.md)
 - Operations, upgrades, rollback and GC: [../docs/operations.md](../docs/operations.md)
 - Production case with simulated values: [../docs/production-case-silicon-valley.md](../docs/production-case-silicon-valley.md)
 

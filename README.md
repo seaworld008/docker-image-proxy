@@ -115,6 +115,7 @@ registry:3.1.1 -> Docker Hub
 | [deploy/README.md](deploy/README.md) | 部署包说明 |
 | [docs/client-usage.md](docs/client-usage.md) | Docker、Kubernetes Docker CRI、containerd、k3s、RKE2 接入 |
 | [docs/cdn-and-security.md](docs/cdn-and-security.md) | 域名、CDN、源站安全、WAF、回源配置 |
+| [docs/cdn-provider-setup.md](docs/cdn-provider-setup.md) | 阿里云、腾讯云、华为云、AWS CloudFront、Cloudflare CDN 逐步配置 |
 | [docs/operations.md](docs/operations.md) | 日常运维、升级、回滚、清理、排错 |
 | [docs/production-case-silicon-valley.md](docs/production-case-silicon-valley.md) | 硅谷源站真实部署案例，使用模拟数据展示 |
 | [AGENTS.md](AGENTS.md) | 给 AI agent 和后续维护者的仓库上下文 |
