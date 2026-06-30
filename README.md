@@ -53,7 +53,23 @@ chmod +x ./scripts/install-or-update.sh
 
 ## 客户端使用方式
 
-普通 Docker 服务器：
+客户端只需要配置 mirror endpoint，不需要改业务镜像名：
+
+```text
+生产推荐：https://mirror.example.com
+内测直连：http://203.0.113.10:5000
+```
+
+注意：
+
+- endpoint 不要带 `/v2/` 后缀。
+- `203.0.113.10` 是文档模拟 IP，上线前替换成自己的源站 IP。
+- 生产建议只使用 HTTPS 域名；HTTP 直连必须限制来源 IP。
+- 该 mirror 只代理 Docker Hub，也就是 `docker.io`。
+
+### 普通 Docker 服务器
+
+编辑 `/etc/docker/daemon.json`：
 
 ```json
 {
@@ -63,7 +79,57 @@ chmod +x ./scripts/install-or-update.sh
 }
 ```
 
-Kubernetes containerd 节点：
+重启并验证：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+docker info | sed -n '/Registry Mirrors/,+8p'
+docker pull alpine:3.20
+```
+
+如果是 HTTP 内测入口，需要额外加入 `insecure-registries`：
+
+```json
+{
+  "registry-mirrors": [
+    "http://203.0.113.10:5000"
+  ],
+  "insecure-registries": [
+    "203.0.113.10:5000"
+  ]
+}
+```
+
+### Kubernetes 使用 Docker 作为 CRI
+
+先识别节点运行时：
+
+```bash
+kubectl get nodes -o custom-columns=NAME:.metadata.name,RUNTIME:.status.nodeInfo.containerRuntimeVersion
+```
+
+适用于运行时显示 `docker://...` 的节点。每个节点都按“普通 Docker 服务器”配置 `/etc/docker/daemon.json`，然后重启：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo systemctl restart cri-docker || sudo systemctl restart cri-dockerd
+sudo systemctl restart kubelet
+```
+
+验证：
+
+```bash
+docker pull alpine:3.20
+sudo crictl pull docker.io/library/alpine:3.20
+```
+
+生产集群建议逐台节点 `drain -> 配置 -> 验证 -> uncordon`。
+
+### Kubernetes 使用 containerd 作为 CRI
+
+适用于运行时显示 `containerd://...` 的节点，每个节点都要配置。containerd 推荐使用 `certs.d/docker.io/hosts.toml`：
 
 ```toml
 server = "https://registry-1.docker.io"
@@ -72,14 +138,70 @@ server = "https://registry-1.docker.io"
   capabilities = ["pull", "resolve"]
 ```
 
+最小配置流程：
+
+```bash
+sudo mkdir -p /etc/containerd/certs.d/docker.io
+sudo tee /etc/containerd/certs.d/docker.io/hosts.toml >/dev/null <<'EOF'
+server = "https://registry-1.docker.io"
+
+[host."https://mirror.example.com"]
+  capabilities = ["pull", "resolve"]
+
+[host."https://registry-1.docker.io"]
+  capabilities = ["pull", "resolve"]
+EOF
+
+sudo systemctl restart containerd
+sudo systemctl restart kubelet
+sudo crictl pull docker.io/library/alpine:3.20
+```
+
+还需要确认 `/etc/containerd/config.toml` 已启用 `config_path = "/etc/containerd/certs.d"`。containerd 1.x 和 2.x 的 plugin path 不同，完整配置见 [客户端接入手册](docs/client-usage.md#三kubernetes-使用-containerd-作为-cri)。
+
+### k3s / RKE2
+
+k3s 和 RKE2 使用内置 containerd，优先改 `registries.yaml`，不要直接改生成的 containerd 配置。
+
+k3s：
+
+```bash
+sudo mkdir -p /etc/rancher/k3s
+sudo tee /etc/rancher/k3s/registries.yaml >/dev/null <<'EOF'
+mirrors:
+  docker.io:
+    endpoint:
+      - "https://mirror.example.com"
+EOF
+
+sudo systemctl restart k3s || sudo systemctl restart k3s-agent
+sudo crictl pull docker.io/library/alpine:3.20
+```
+
+RKE2：
+
+```bash
+sudo mkdir -p /etc/rancher/rke2
+sudo tee /etc/rancher/rke2/registries.yaml >/dev/null <<'EOF'
+mirrors:
+  docker.io:
+    endpoint:
+      - "https://mirror.example.com"
+EOF
+
+sudo systemctl restart rke2-server || sudo systemctl restart rke2-agent
+sudo crictl pull docker.io/library/alpine:3.20
+```
+
 业务镜像名保持原样：
 
 ```bash
 docker pull alpine:3.20
 docker pull nginx:1.30.3-alpine
+kubectl run mirror-test --image=docker.io/library/alpine:3.20 --restart=Never -- sleep 60
 ```
 
-详细步骤见 [国内 Docker/Kubernetes 客户端接入手册](docs/client-usage.md)。
+完整步骤、HTTP 内测、自签名证书、kubeadm、逐台节点发布和排错见 [国内 Docker/Kubernetes 客户端接入手册](docs/client-usage.md)。
 
 ## 推荐生产架构
 
