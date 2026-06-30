@@ -1,6 +1,6 @@
 # 域名、CDN 和安全入口配置手册
 
-本文说明如何把 `/data/docker-image-proxy/` 上的 mirror 发布成国内 Docker/Kubernetes 节点可用的稳定入口，并避免源站被直连滥用。
+本文说明如何把 `/data/docker-image-proxy/` 上的 mirror 发布成国内 Docker/Kubernetes 节点可用的稳定入口，并避免源站被直连滥用。各 CDN 厂商控制台逐步配置请阅读 [CDN 厂商配置手册](cdn-provider-setup.md)。
 
 ## 推荐架构
 
@@ -115,6 +115,8 @@ mirror-origin.example.com  # 可选，源站域名，仅给 CDN 回源使用
 - 如果使用 `mirror-origin.example.com`，该域名应只给 CDN 回源使用，源站安全组仍要限制来源。
 
 ## CDN 通用配置
+
+本节是通用原则。阿里云、腾讯云、华为云、AWS CloudFront、Cloudflare 的详细控制台步骤见 [CDN 厂商配置手册](cdn-provider-setup.md)。
 
 ### 基础参数
 
@@ -247,6 +249,8 @@ if ($http_x_origin_auth != "<随机长密钥>") {
 
 ## 阿里云 CDN 配置要点
 
+完整逐步配置见 [CDN 厂商配置手册 - 阿里云 CDN / DCDN 配置](cdn-provider-setup.md#aliyun-cdn)。
+
 控制台路径可能随版本变化，按以下参数对应填写：
 
 ```text
@@ -276,6 +280,8 @@ HTTPS 配置
 
 ## 腾讯云 CDN 配置要点
 
+完整逐步配置见 [CDN 厂商配置手册 - 腾讯云 CDN / ECDN 配置](cdn-provider-setup.md#tencent-cdn)。
+
 ```text
 域名管理 -> 添加域名
   加速域名：mirror.example.com
@@ -302,6 +308,8 @@ HTTPS 配置
 
 ## 华为云 CDN 配置要点
 
+完整逐步配置见 [CDN 厂商配置手册 - 华为云 CDN 配置](cdn-provider-setup.md#huawei-cdn)。
+
 ```text
 域名管理 -> 添加域名
   加速域名：mirror.example.com
@@ -327,6 +335,8 @@ HTTPS 配置
 ```
 
 ## Cloudflare 配置要点
+
+完整逐步配置见 [CDN 厂商配置手册 - Cloudflare 配置](cdn-provider-setup.md#cloudflare)。
 
 ```text
 DNS

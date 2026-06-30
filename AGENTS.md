@@ -30,6 +30,7 @@ It does not transparently accelerate `registry.k8s.io`, `quay.io`, `ghcr.io`, or
 - Deploy package: `deploy/README.md`
 - Client configuration: `docs/client-usage.md`
 - CDN and security: `docs/cdn-and-security.md`
+- CDN provider setup: `docs/cdn-provider-setup.md`
 - Operations: `docs/operations.md`
 - Real deployment case with simulated values: `docs/production-case-silicon-valley.md`
 
@@ -151,5 +152,6 @@ For "harden public access":
 
 1. Start from `docs/cdn-and-security.md`.
 2. Prefer HTTPS CDN entrypoint.
-3. Restrict source access by CDN IP allowlist or origin authentication.
-4. Keep WAF challenges disabled for `/v2/`.
+3. Use `docs/cdn-provider-setup.md` for provider-specific CDN steps.
+4. Restrict source access by CDN IP allowlist or origin authentication.
+5. Keep WAF challenges disabled for `/v2/`.
