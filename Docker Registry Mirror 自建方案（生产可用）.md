@@ -2,7 +2,7 @@
 
 本文提供两个可直接落地的 Docker Hub 镜像加速方案，均基于官方 `registry:3` 的 **proxy mirror** 模式，可缓存已拉取的镜像层，显著提升国内拉取速度与稳定性。
 
-## 当前推荐落地版（2026-06-29 核验）
+## 当前推荐落地版（2026-06-30 核验）
 
 本仓库已补充 `deploy/` 部署包，推荐将其同步到硅谷源站的 `/data/docker-image-proxy/` 目录后使用 Docker Compose 部署。部署包固定使用当前核验的稳定镜像版本：
 
@@ -49,6 +49,8 @@ docker pull 127.0.0.1:5000/library/alpine:3.20
 
 验证结果：`/v2/` 返回 200，`library/alpine:3.20` manifest 返回 200，真实 `docker pull` 成功，缓存目录写入 `/data/docker-image-proxy/data/registry/`。
 
+> 说明：仓库内所有公网 IP、SSH 端口、密钥路径和 token 示例均使用模拟数据，例如 `203.0.113.10`、`10022`、`/path/to/id_ed25519`、`replace-with-your-token`。上线前必须替换成自己的真实值，但真实敏感信息不要提交到仓库。
+
 ## 目录
 
 - [方案选择](#section-choice)
@@ -59,6 +61,7 @@ docker pull 127.0.0.1:5000/library/alpine:3.20
 - [方案 A：使用你已有的代理出海（内网加速）](#section-plan-a)
 - [方案 B：外网服务器 + CDN 加速（生产推荐）](#section-plan-b)
 - [K8S 节点配置（Docker / containerd）](#section-k8s)
+- [生产文档入口](#section-docs)
 - [运维与优化建议](#section-ops)
 - [访问控制与限流（生产建议）](#section-access)
 - [测速与链路评估（方案 A/方案 B 通用）](#section-bench)
@@ -543,13 +546,13 @@ docker compose -f docker-compose.yml -f docker-compose.with-auth.yml up -d
 在 `server` 中加入：
 
 ```nginx
-# 仅示例：把 your-shared-secret 换成你的随机值
-if ($http_x_cdn_auth != "a9f3b1c8d2e6f4a7c9b0d1e2f3a4b5c6d7e") { return 403; }
+# 仅示例：把 replace-with-random-origin-secret 换成你的随机值
+if ($http_x_cdn_auth != "replace-with-random-origin-secret") { return 403; }
 ```
 
 **Nginx 完整参考配置（含回源鉴权 Header 示例）**
 
-> 将 `your-shared-secret` 替换为你在 CDN 回源时添加的同一值。
+> 将 `replace-with-random-origin-secret` 替换为你在 CDN 回源时添加的同一值。
 
 ```nginx
 events {}
@@ -572,8 +575,8 @@ http {
     proxy_read_timeout 900s;
     proxy_request_buffering off;
 
-    # 仅示例：把 your-shared-secret 换成你的随机值
-    if ($http_x_cdn_auth != "a9f3b1c8d2e6f4a7c9b0d1e2f3a4b5c6d7e") { return 403; }
+    # 仅示例：把 replace-with-random-origin-secret 换成你的随机值
+    if ($http_x_cdn_auth != "replace-with-random-origin-secret") { return 403; }
 
     location /v2/ {
       proxy_pass                          http://registry:5000;
@@ -637,7 +640,7 @@ docker pull hello-world
 <a id="section-k8s"></a>
 ## K8S 节点配置（Docker / containerd）
 
-> 需要在 **每个节点** 上配置。生产建议优先使用 HTTPS 镜像地址；若是内网 HTTP，请确保仅限内网访问并做好防火墙控制。
+> 需要在 **每个节点** 上配置。生产建议优先使用 HTTPS 镜像地址；若是内网 HTTP，请确保仅限内网访问并做好防火墙控制。完整可执行步骤请以 [docs/client-usage.md](docs/client-usage.md) 为准。
 
 ### A) K8S 使用 Docker（cri-dockerd）
 
@@ -685,10 +688,19 @@ sudo mkdir -p /etc/containerd
 
 2) 配置 `config_path`（启用 hosts.toml 方式）：
 
-编辑 `/etc/containerd/config.toml`，确保：
+containerd 1.x 编辑 `/etc/containerd/config.toml`，确保：
 
 ```toml
 [plugins."io.containerd.grpc.v1.cri".registry]
+  config_path = "/etc/containerd/certs.d"
+```
+
+containerd 2.x 且使用 v3 配置格式时，使用：
+
+```toml
+version = 3
+
+[plugins."io.containerd.cri.v1.images".registry]
   config_path = "/etc/containerd/certs.d"
 ```
 
@@ -788,6 +800,24 @@ sudo systemctl restart k3s-agent
 crictl info | grep -E "registry|mirror"
 crictl pull docker.io/library/alpine:3.20
 ```
+
+---
+
+<a id="section-docs"></a>
+## 生产文档入口
+
+本仓库已按生产维护拆分文档：
+
+| 文档 | 用途 |
+| --- | --- |
+| [README.md](README.md) | 仓库总入口 |
+| [docs/README.md](docs/README.md) | 文档导航入口 |
+| [deploy/README.md](deploy/README.md) | 部署包说明 |
+| [docs/client-usage.md](docs/client-usage.md) | Docker、Kubernetes Docker CRI、containerd、k3s、RKE2 接入 |
+| [docs/cdn-and-security.md](docs/cdn-and-security.md) | 域名、CDN、WAF、回源和源站安全 |
+| [docs/operations.md](docs/operations.md) | 日常运维、升级、回滚、备份、GC、排错 |
+| [docs/production-case-silicon-valley.md](docs/production-case-silicon-valley.md) | 硅谷源站部署案例，使用模拟数据展示 |
+| [AGENTS.md](AGENTS.md) | 给 AI agent 的仓库上下文 |
 
 ---
 
