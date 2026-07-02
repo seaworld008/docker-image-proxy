@@ -48,10 +48,10 @@ registry:3.1.1 -> https://registry-1.docker.io
 
 | 组件 | 固定镜像 |
 | --- | --- |
-| Registry | `registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33` |
-| Nginx | `nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1` |
+| Registry | `registry:3.1.1` |
+| Nginx | `nginx:1.30.3-alpine` |
 
-更新镜像时必须同时更新 tag 和 digest，并重新执行 [验证手册](validation.md) 中的源站、CDN、客户端验证。
+更新镜像时必须更新明确版本 tag，并重新执行 [验证手册](validation.md) 中的源站、CDN、客户端验证。
 
 ## 四、生产约束
 

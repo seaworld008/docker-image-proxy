@@ -50,21 +50,21 @@ proxy.remoteurl = https://registry-1.docker.io
 - 直接 HTTP 访问只用于受控测试，并且必须限制来源 IP。
 - 生产部署必须通过 `REGISTRY_PROXY_USERNAME` 和 `REGISTRY_PROXY_PASSWORD` 配置 Docker Hub 上游认证。
 - `REGISTRY_PROXY_PASSWORD` 应使用 Docker Hub Access Token，不要使用个人主账号密码。
-- Compose 镜像必须同时固定 tag 和 digest。
+- Compose 镜像必须固定到明确版本 tag。
 - `registry` 不直接暴露，Nginx 是本地唯一入口。
 - 本服务是 pull-through cache，不是通用私有镜像仓库。
 
 ## 当前固定镜像
 
 ```text
-registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33
-nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
+registry:3.1.1
+nginx:1.30.3-alpine
 ```
 
 更新任一镜像时：
 
 1. 先确认上游最新稳定版本。
-2. 同时更新 tag 和 digest。
+2. 更新对应镜像 tag。
 3. 按需更新 `README.md`、`deploy/README.md`、`docs/architecture.md`、`docs/source-deployment.md`、`docs/operations.md` 和方案入口文档。
 4. 运行本地验证；如果有可用服务器，再运行真实环境验证。
 
@@ -147,7 +147,7 @@ curl -fsSI \
 部署最新稳定版：
 
 1. 确认当前上游最新稳定版本。
-2. 如果需要，更新镜像 tag 和 digest。
+2. 如果需要，更新镜像 tag。
 3. 从 `deploy/` 部署到 `/data/docker-image-proxy/`。
 4. 在 `.env` 中填写专用 Docker Hub 用户名和 Access Token。
 5. 运行 `./scripts/validate.sh`。

@@ -35,8 +35,8 @@ registry:3.1.1 -> Docker Hub
 
 | 组件 | 固定镜像 |
 | --- | --- |
-| Registry | `registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33` |
-| Nginx | `nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1` |
+| Registry | `registry:3.1.1` |
+| Nginx | `nginx:1.30.3-alpine` |
 
 ## 三、按目标阅读
 

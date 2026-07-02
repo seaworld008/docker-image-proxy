@@ -92,7 +92,7 @@ chmod +x ./scripts/install-or-update.sh
 - 创建 `data/registry`、`logs/nginx` 等目录。
 - 自动生成或检查 `REGISTRY_HTTP_SECRET`。
 - 检查 Docker Hub 用户名和 Access Token，未填写时直接退出。
-- 拉取固定 tag + digest 的镜像。
+- 拉取固定版本 tag 的镜像。
 - 启动 Compose 服务。
 - 执行真实 `/v2/`、manifest、`docker pull` 验证。
 
