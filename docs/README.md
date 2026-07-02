@@ -54,7 +54,8 @@ mirror.example.com
 mirror-origin.example.com
 10022
 /path/to/id_ed25519
-replace-with-your-token
+replace-with-dockerhub-username
+replace-with-dockerhub-access-token
 ```
 
 这些值只用于说明配置位置。上线前必须替换成自己的真实值，真实敏感信息不要提交到仓库。

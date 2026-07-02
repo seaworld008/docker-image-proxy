@@ -6,7 +6,9 @@ services:
     container_name: docker-image-proxy-registry
     restart: unless-stopped
     environment:
-      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET:?set REGISTRY_HTTP_SECRET in .env}
+      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET:?请在 .env 中设置 REGISTRY_HTTP_SECRET}
+      REGISTRY_PROXY_USERNAME: ${REGISTRY_PROXY_USERNAME:?请在 .env 中设置 REGISTRY_PROXY_USERNAME}
+      REGISTRY_PROXY_PASSWORD: ${REGISTRY_PROXY_PASSWORD:?请在 .env 中设置 REGISTRY_PROXY_PASSWORD}
       OTEL_TRACES_EXPORTER: none
     expose:
       - "5000"

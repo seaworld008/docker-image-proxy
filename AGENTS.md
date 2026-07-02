@@ -1,69 +1,71 @@
-# AI Agent Guide
+# AI Agent 指南
 
-This repository maintains a production-ready Docker Hub pull-through cache deployment package.
+本仓库维护一个生产可用的 Docker Hub pull-through cache 部署包。
 
-Use this file as the first context document when an AI agent, coding assistant, or automation bot works on the repo.
+当 AI agent、代码助手或自动化机器人处理本仓库时，请先阅读本文档，再阅读对应任务文档。
 
-## What This Repo Does
+## 仓库用途
 
-The repo provides:
+本仓库提供：
 
-- A Docker Compose deploy package for Docker Distribution Registry in proxy mirror mode.
-- An Nginx front container with production-oriented defaults.
-- Documentation for Docker Engine, Kubernetes Docker CRI, containerd, k3s, and RKE2 clients.
-- CDN, DNS, WAF, origin protection, operations, upgrade, rollback, and validation runbooks.
-- A real deployment case for a Silicon Valley source server, documented with simulated public values.
+- 基于 Docker Distribution Registry proxy mirror 模式的 Docker Compose 部署包。
+- 带生产默认配置的 Nginx 前置容器。
+- Docker Engine、Kubernetes Docker CRI、containerd、k3s、RKE2 客户端接入文档。
+- CDN、DNS、WAF、源站保护、运维、升级、回滚、验证 runbook。
+- 使用模拟公网信息编写的硅谷源站真实部署案例。
 
-The mirror targets Docker Hub only:
+当前 mirror 只代理 Docker Hub：
 
 ```text
 proxy.remoteurl = https://registry-1.docker.io
 ```
 
-It does not transparently accelerate `registry.k8s.io`, `quay.io`, `ghcr.io`, or private registries.
+它不会透明加速 `registry.k8s.io`、`quay.io`、`ghcr.io` 或私有镜像仓库。
 
-## Start Here
+## 先读这里
 
-- Human entrypoint: `README.md`
-- Documentation index: `docs/README.md`
-- Architecture overview: `Docker Registry Mirror 自建方案（生产可用）.md`
-- Deploy package: `deploy/README.md`
-- Client configuration: `docs/client-usage.md`
-- CDN and security: `docs/cdn-and-security.md`
-- CDN provider setup: `docs/cdn-provider-setup.md`
-- Operations: `docs/operations.md`
-- Real deployment case with simulated values: `docs/production-case-silicon-valley.md`
+- 人类入口：`README.md`
+- 文档导航：`docs/README.md`
+- 架构总览：`Docker Registry Mirror 自建方案（生产可用）.md`
+- 部署包说明：`deploy/README.md`
+- 客户端配置：`docs/client-usage.md`
+- CDN 和安全：`docs/cdn-and-security.md`
+- CDN 厂商配置：`docs/cdn-provider-setup.md`
+- 运维手册：`docs/operations.md`
+- 模拟值生产案例：`docs/production-case-silicon-valley.md`
 
-## Production Invariants
+## 生产约束
 
-Keep these properties unless the user explicitly asks for a different architecture:
+除非用户明确要求改变架构，否则保持以下约束：
 
-- Deployment directory is `/data/docker-image-proxy/`.
-- Persistent data, logs, and local config stay under `/data/docker-image-proxy/`.
-- Default bind address is `127.0.0.1:5000`.
-- Public or cross-site access must go through HTTPS/CDN or a tightly controlled network path.
-- Direct HTTP access is only for controlled testing and must be source-IP restricted.
-- Compose images are pinned by tag and digest.
-- `registry` is not exposed directly; Nginx is the only local entrypoint.
-- This service is a pull-through cache, not a general private registry.
+- 部署目录固定为 `/data/docker-image-proxy/`。
+- 持久化数据、日志、本地配置都放在 `/data/docker-image-proxy/` 下。
+- 默认监听地址为 `127.0.0.1:5000`。
+- 公网或跨站访问必须通过 HTTPS/CDN 或严格受控的网络路径。
+- 直接 HTTP 访问只用于受控测试，并且必须限制来源 IP。
+- 生产部署必须通过 `REGISTRY_PROXY_USERNAME` 和 `REGISTRY_PROXY_PASSWORD` 配置 Docker Hub 上游认证。
+- `REGISTRY_PROXY_PASSWORD` 应使用 Docker Hub Access Token，不要使用个人主账号密码。
+- Compose 镜像必须同时固定 tag 和 digest。
+- `registry` 不直接暴露，Nginx 是本地唯一入口。
+- 本服务是 pull-through cache，不是通用私有镜像仓库。
 
-## Current Pinned Images
+## 当前固定镜像
 
 ```text
 registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33
 nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
 ```
 
-When updating either image:
+更新任一镜像时：
 
-1. Verify the latest stable upstream release.
-2. Update tag and digest together.
-3. Update `README.md`, `deploy/README.md`, `docs/operations.md`, and the architecture overview if needed.
-4. Run local validation and, when available, live server validation.
+1. 先确认上游最新稳定版本。
+2. 同时更新 tag 和 digest。
+3. 按需更新 `README.md`、`deploy/README.md`、`docs/operations.md` 和架构总览文档。
+4. 运行本地验证；如果有可用服务器，再运行真实环境验证。
 
-## Simulated Data Policy
+## 模拟数据规则
 
-Public docs may use simulated values only:
+公开文档只能使用模拟值：
 
 ```text
 203.0.113.10
@@ -71,24 +73,26 @@ mirror.example.com
 mirror-origin.example.com
 10022
 /path/to/id_ed25519
-replace-with-your-token
+replace-with-dockerhub-username
+replace-with-dockerhub-access-token
 ```
 
-Never commit:
+禁止提交：
 
-- Real public server IPs.
-- SSH private keys or private key paths from a real workstation.
-- Real SSH ports if they identify a server.
-- Docker Hub usernames/tokens.
-- `.env` files.
-- Cloud provider credentials.
-- `REGISTRY_HTTP_SECRET`.
+- 真实公网服务器 IP。
+- SSH 私钥或真实工作站上的私钥路径。
+- 能识别服务器的真实 SSH 端口。
+- Docker Hub 用户名、密码、Access Token。
+- `.env` 文件。
+- 云厂商凭据。
+- `REGISTRY_HTTP_SECRET`。
+- 真实 `REGISTRY_PROXY_USERNAME` 或 `REGISTRY_PROXY_PASSWORD`。
 
-If a real deployment case is documented, replace sensitive values with the simulated examples above and explicitly state that users must replace them before production use.
+如果记录真实部署案例，必须把敏感值替换成上面的模拟值，并明确说明用户上线前要替换成自己的真实值。
 
-## Validation Commands
+## 验证命令
 
-Source server:
+源站服务器：
 
 ```bash
 cd /data/docker-image-proxy
@@ -97,14 +101,14 @@ docker compose ps
 curl -fsSI http://127.0.0.1:5000/v2/
 ```
 
-Docker client:
+Docker 客户端：
 
 ```bash
 docker info | sed -n '/Registry Mirrors/,+8p'
 docker pull alpine:3.20
 ```
 
-containerd/Kubernetes client:
+containerd/Kubernetes 客户端：
 
 ```bash
 crictl pull docker.io/library/alpine:3.20
@@ -112,7 +116,7 @@ kubectl run mirror-test --image=docker.io/library/alpine:3.20 --restart=Never --
 kubectl delete pod mirror-test
 ```
 
-CDN endpoint:
+CDN 入口：
 
 ```bash
 curl -fsSI https://mirror.example.com/v2/
@@ -121,37 +125,39 @@ curl -fsSI \
   https://mirror.example.com/v2/library/alpine/manifests/3.20
 ```
 
-## Editing Rules
+## 编辑规则
 
-- Prefer small, focused docs changes.
-- Keep README concise; move long operational steps into `docs/`.
-- Update `docs/README.md` whenever adding, renaming, or removing docs.
-- Keep placeholders consistent across docs.
-- Do not add secrets or machine-specific real paths.
-- Use official docs for Docker, containerd, Kubernetes, k3s, and CDN behavior when changing runtime configuration guidance.
-- Run `git diff --check` before committing.
+- 优先做小而聚焦的改动。
+- README 保持简洁，长步骤放到 `docs/`。
+- 新增、重命名或删除文档时，同步更新 `docs/README.md`。
+- 文档、脚本注释、示例说明默认使用中文；配置键、命令、第三方协议字段保持原样。
+- 占位符在各文档中保持一致。
+- 不要加入真实密钥、真实机器路径或可识别服务器的信息。
+- 修改 Docker、containerd、Kubernetes、k3s、CDN 运行配置指导时，优先参考官方文档。
+- 提交前运行 `git diff --check`。
 
-## Common User Goals
+## 常见用户目标
 
-For "deploy latest stable version":
+部署最新稳定版：
 
-1. Verify current upstream versions.
-2. Update image pins if needed.
-3. Deploy from `deploy/` to `/data/docker-image-proxy/`.
-4. Run `./scripts/validate.sh`.
-5. Document any production findings.
+1. 确认当前上游最新稳定版本。
+2. 如果需要，更新镜像 tag 和 digest。
+3. 从 `deploy/` 部署到 `/data/docker-image-proxy/`。
+4. 在 `.env` 中填写专用 Docker Hub 用户名和 Access Token。
+5. 运行 `./scripts/validate.sh`。
+6. 记录生产验证结论。
 
-For "configure domestic servers":
+配置国内服务器使用：
 
-1. Ensure source endpoint is reachable through HTTPS/CDN or controlled HTTP.
-2. Identify client runtime: Docker, Docker CRI, containerd, k3s, or RKE2.
-3. Apply `docs/client-usage.md`.
-4. Validate with real `docker pull` or `crictl pull`.
+1. 确认源站入口可通过 HTTPS/CDN 或受控 HTTP 访问。
+2. 确认客户端运行时是 Docker、Docker CRI、containerd、k3s 还是 RKE2。
+3. 按 `docs/client-usage.md` 配置。
+4. 用真实 `docker pull` 或 `crictl pull` 验证。
 
-For "harden public access":
+加固公网访问：
 
-1. Start from `docs/cdn-and-security.md`.
-2. Prefer HTTPS CDN entrypoint.
-3. Use `docs/cdn-provider-setup.md` for provider-specific CDN steps.
-4. Restrict source access by CDN IP allowlist or origin authentication.
-5. Keep WAF challenges disabled for `/v2/`.
+1. 从 `docs/cdn-and-security.md` 开始。
+2. 优先使用 HTTPS CDN 入口。
+3. 按 `docs/cdn-provider-setup.md` 配置具体 CDN 厂商。
+4. 用 CDN 回源 IP 白名单或回源鉴权限制源站访问。
+5. `/v2/` 路径不要启用会破坏 Docker 客户端的 WAF 人机挑战。

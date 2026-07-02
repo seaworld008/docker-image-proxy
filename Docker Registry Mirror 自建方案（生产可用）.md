@@ -21,7 +21,7 @@
 - `registry` 不直接暴露公网端口，只通过同 compose 网络内的 `nginx` 访问。
 - 部署包默认只监听 `127.0.0.1:5000`，避免把未鉴权 mirror 暴露到公网；需要公网使用时先接入现有 Nginx/CDN 并配置访问控制。
 - 公网或跨地域访问时，优先使用 HTTPS/CDN/WAF，并对源站做 CDN 回源 IP 白名单或回源 Header 鉴权。
-- 如配置 Docker Hub 用户名/Token，只使用专用低权限账号；若该账号可访问私有镜像，必须先给 mirror 加访问控制，否则会把该账号可访问的私有资源暴露给 mirror 使用者。
+- 必须配置 Docker Hub 用户名/Access Token 作为上游认证，避免匿名拉取触发限流。只使用专用低权限账号；若该账号可访问私有镜像，必须先给 mirror 加访问控制，否则会把该账号可访问的私有资源暴露给 mirror 使用者。
 - 使用 `registry-mirrors` 只能加速 Docker Hub（`docker.io`），`registry.k8s.io`、`quay.io`、私有仓库需要分别配置各自镜像源或代理策略。
 
 快速部署包位置：
@@ -29,7 +29,6 @@
 ```bash
 /data/docker-image-proxy/
 ├── docker-compose.yml
-├── docker-compose.with-auth.yml
 ├── .env
 ├── config/registry/config.yml
 ├── nginx/nginx.conf
@@ -49,7 +48,7 @@ docker pull 127.0.0.1:5000/library/alpine:3.20
 
 验证结果：`/v2/` 返回 200，`library/alpine:3.20` manifest 返回 200，真实 `docker pull` 成功，缓存目录写入 `/data/docker-image-proxy/data/registry/`。
 
-> 说明：仓库内所有公网 IP、SSH 端口、密钥路径和 token 示例均使用模拟数据，例如 `203.0.113.10`、`10022`、`/path/to/id_ed25519`、`replace-with-your-token`。上线前必须替换成自己的真实值，但真实敏感信息不要提交到仓库。
+> 说明：仓库内所有公网 IP、SSH 端口、密钥路径、Docker Hub 用户名和 token 示例均使用模拟数据，例如 `203.0.113.10`、`10022`、`/path/to/id_ed25519`、`replace-with-dockerhub-username`、`replace-with-dockerhub-access-token`。上线前必须替换成自己的真实值，但真实敏感信息不要提交到仓库。
 
 ## 目录
 
@@ -181,8 +180,8 @@ http:
 HTTP_PROXY=http://192.168.110.210:7897
 HTTPS_PROXY=http://192.168.110.210:7897
 NO_PROXY=localhost,127.0.0.1,registry,registry-mirror
-DOCKERHUB_USER=your_dockerhub_user
-DOCKERHUB_PASS=your_dockerhub_token
+DOCKERHUB_USER=replace-with-dockerhub-username
+DOCKERHUB_PASS=replace-with-dockerhub-access-token
 ```
 
 **为什么必填？**
@@ -342,9 +341,9 @@ services:
     container_name: registry-mirror
     restart: unless-stopped
     environment:
-      # 建议必配：避免 Docker Hub 拉取限流
-      REGISTRY_PROXY_USERNAME: ${DOCKERHUB_USER}
-      REGISTRY_PROXY_PASSWORD: ${DOCKERHUB_PASS}
+      # 必填：避免 Docker Hub 匿名拉取限流
+      REGISTRY_PROXY_USERNAME: ${DOCKERHUB_USER:?set DOCKERHUB_USER}
+      REGISTRY_PROXY_PASSWORD: ${DOCKERHUB_PASS:?set DOCKERHUB_PASS}
     volumes:
       - ./data:/var/lib/registry
       - ./config/config.yml:/etc/distribution/config.yml:ro
@@ -363,14 +362,14 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
 ```
 
-创建 `/data/docker-image-proxy/.env`（建议必配，避免 Docker Hub 拉取限流）：
+创建 `/data/docker-image-proxy/.env`（必填，避免 Docker Hub 匿名拉取限流）：
 
 ```ini
-DOCKERHUB_USER=your_dockerhub_user
-DOCKERHUB_PASS=your_dockerhub_token
+DOCKERHUB_USER=replace-with-dockerhub-username
+DOCKERHUB_PASS=replace-with-dockerhub-access-token
 ```
 
-**为什么建议必配？**
+**为什么必填？**
 海外源站作为公共入口，回源拉取更频繁；匿名额度容易被快速耗尽。
 配置账号与 Token 可显著提高回源稳定性，减少 429/拉取失败问题。
 
@@ -400,11 +399,7 @@ chmod +x ./scripts/install-or-update.sh
 ./scripts/install-or-update.sh
 ```
 
-如需启用 Docker Hub 认证回源，先在 `.env` 中填写专用低权限账号/token，再使用：
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.with-auth.yml up -d
-```
+本仓库 `deploy/` 包默认强制 Docker Hub 认证回源，先在 `.env` 中填写专用低权限账号/token，再运行 `./scripts/install-or-update.sh`。
 
 ### 6) CDN 建议配置（通用）
 

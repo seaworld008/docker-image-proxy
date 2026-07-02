@@ -2,11 +2,6 @@
 set -eu
 
 APP_DIR="${APP_DIR:-/data/docker-image-proxy}"
-COMPOSE_FILES="-f docker-compose.yml"
-
-if [ "${ENABLE_DOCKERHUB_AUTH:-0}" = "1" ]; then
-  COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.with-auth.yml"
-fi
 
 cd "$APP_DIR"
 
@@ -21,14 +16,39 @@ if grep -q 'replace-with-64-hex-chars' .env; then
   sed -i "s/replace-with-64-hex-chars/${secret}/" .env
 fi
 
+get_env_value() {
+  key="$1"
+  value="$(sed -n "s/^${key}=//p" .env | tail -n 1 | tr -d '\r')"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  printf '%s' "$value"
+}
+
+dockerhub_user="$(get_env_value REGISTRY_PROXY_USERNAME)"
+dockerhub_pass="$(get_env_value REGISTRY_PROXY_PASSWORD)"
+
+if [ -z "$dockerhub_user" ] || [ "$dockerhub_user" = "replace-with-dockerhub-username" ]; then
+  echo "错误：必须先在 .env 中填写 REGISTRY_PROXY_USERNAME，也就是 Docker Hub 用户名。" >&2
+  echo "建议使用专用低权限 Docker Hub 账号，避免匿名拉取触发限流。" >&2
+  exit 1
+fi
+
+if [ -z "$dockerhub_pass" ] || [ "$dockerhub_pass" = "replace-with-dockerhub-access-token" ]; then
+  echo "错误：必须先在 .env 中填写 REGISTRY_PROXY_PASSWORD，也就是 Docker Hub Access Token。" >&2
+  echo "请在 Docker Hub 创建 Access Token 后再部署，避免后续拉取镜像被限流。" >&2
+  exit 1
+fi
+
 chmod 600 .env
-chmod 644 docker-compose.yml docker-compose.with-auth.yml .env.example README.md .gitignore
+chmod 644 docker-compose.yml .env.example README.md .gitignore
 chmod 644 config/registry/config.yml nginx/nginx.conf
 chmod 755 scripts scripts/install-or-update.sh scripts/validate.sh
 chmod 755 data data/registry logs logs/nginx
 
-docker compose $COMPOSE_FILES pull
-docker compose $COMPOSE_FILES up -d
+docker compose pull
+docker compose up -d
 docker compose ps
 
 chmod +x ./scripts/validate.sh

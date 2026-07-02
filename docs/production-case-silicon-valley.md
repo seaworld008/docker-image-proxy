@@ -10,7 +10,8 @@ SSH 端口：10022
 SSH 私钥路径：/path/to/id_ed25519
 CDN 域名：mirror.example.com
 源站域名：mirror-origin.example.com
-Docker Hub token：replace-with-your-token
+Docker Hub 用户名：replace-with-dockerhub-username
+Docker Hub token：replace-with-dockerhub-access-token
 ```
 
 ## 部署目标
@@ -56,7 +57,6 @@ nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e8
 ```text
 /data/docker-image-proxy/
 ├── docker-compose.yml
-├── docker-compose.with-auth.yml
 ├── .env
 ├── config/registry/config.yml
 ├── nginx/nginx.conf
@@ -78,6 +78,7 @@ cd /data/docker-image-proxy
 
 - 检查 `.env`。
 - 生成 `REGISTRY_HTTP_SECRET`。
+- 检查 Docker Hub 用户名和 Access Token；未填写时直接退出。
 - 拉取固定版本镜像。
 - 启动 `registry` 与 `nginx`。
 - 执行 `/v2/`、manifest、真实 `docker pull` 验证。

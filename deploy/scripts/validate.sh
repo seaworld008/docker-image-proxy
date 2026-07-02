@@ -9,24 +9,24 @@ DOCKER_PULL_HOST="${DOCKER_PULL_HOST:-127.0.0.1:${DEFAULT_PORT}}"
 tmp_headers="/tmp/docker-image-proxy-headers.$$"
 trap 'rm -f "$tmp_headers"' EXIT
 
-echo "== compose status =="
+echo "== Compose 状态 =="
 docker compose ps
 
-echo "== proxy health =="
+echo "== 代理健康检查 =="
 curl -fsS "${BASE_URL}/healthz"
 curl -fsSI "${BASE_URL}/v2/" > "$tmp_headers"
 sed -n '1,12p' "$tmp_headers"
 
-echo "== upstream manifest through mirror =="
+echo "== 通过 mirror 获取上游 manifest =="
 curl -fsSI \
   -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
   "${BASE_URL}/v2/${IMAGE_REF}/manifests/${IMAGE_TAG}" > "$tmp_headers"
 sed -n '1,20p' "$tmp_headers"
 
-echo "== docker pull through mirror =="
+echo "== 通过 mirror 执行 docker pull =="
 docker pull "${DOCKER_PULL_HOST}/${IMAGE_REF}:${IMAGE_TAG}"
 
-echo "== cache footprint =="
+echo "== 缓存目录占用 =="
 du -sh ./data/registry 2>/dev/null || true
 
-echo "Validation OK: ${BASE_URL} can serve docker.io/${IMAGE_REF}:${IMAGE_TAG} through the mirror."
+echo "验证通过：${BASE_URL} 可以通过 mirror 提供 docker.io/${IMAGE_REF}:${IMAGE_TAG}。"
