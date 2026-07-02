@@ -1,10 +1,21 @@
 # Docker Image Proxy
 
+[![Release](https://img.shields.io/github/v/release/seaworld008/docker-image-proxy?sort=semver&display_name=tag&label=release)](https://github.com/seaworld008/docker-image-proxy/releases)
+[![Stars](https://img.shields.io/github/stars/seaworld008/docker-image-proxy?style=flat&label=stars)](https://github.com/seaworld008/docker-image-proxy/stargazers)
+[![Issues](https://img.shields.io/github/issues/seaworld008/docker-image-proxy?label=issues)](https://github.com/seaworld008/docker-image-proxy/issues)
+[![Registry](https://img.shields.io/badge/registry-3.1.1-blue)](https://hub.docker.com/_/registry)
+[![Compose](https://img.shields.io/badge/deploy-docker%20compose-2496ED)](deploy/README.md)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-containerd%20%7C%20docker-326CE5)](docs/client-usage.md)
+[![CDN](https://img.shields.io/badge/CDN-Aliyun%20%7C%20Tencent%20%7C%20Huawei%20%7C%20AWS%20%7C%20Cloudflare-orange)](docs/cdn-provider-setup.md)
+[![Docs](https://img.shields.io/badge/docs-production%20ready-brightgreen)](docs/README.md)
+
 生产可用的 Docker Hub pull-through cache 部署包，用于给国内 Docker 服务器和 Kubernetes 节点提供稳定的 Docker Hub 镜像加速入口。
 
 本仓库的目标是把一个镜像加速方案整理成可长期维护的生产级工程：部署脚本、Compose 配置、客户端接入、CDN/安全、运维升级、真实案例和 AI agent 上下文都集中在仓库中。
 
 详细方案已按主题拆分：架构见 [docs/architecture.md](docs/architecture.md)，源站部署见 [docs/source-deployment.md](docs/source-deployment.md)，CDN 加速见 [docs/cdn-acceleration.md](docs/cdn-acceleration.md)，安全加固见 [docs/security-hardening.md](docs/security-hardening.md)，端到端验证见 [docs/validation.md](docs/validation.md)。
+
+如果这个仓库帮你快速搭建了稳定的 Docker Hub mirror，欢迎 Star，让更多需要自建镜像加速入口的人看到它。
 
 ## 当前稳定版本
 
