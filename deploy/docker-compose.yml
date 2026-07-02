@@ -2,7 +2,7 @@ name: docker-image-proxy
 
 services:
   registry:
-    image: registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33
+    image: registry:3.1.1
     container_name: docker-image-proxy-registry
     restart: unless-stopped
     environment:
@@ -24,7 +24,7 @@ services:
         max-file: "5"
 
   nginx:
-    image: nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
+    image: nginx:1.30.3-alpine
     container_name: docker-image-proxy-nginx
     restart: unless-stopped
     depends_on:

@@ -44,7 +44,7 @@ chmod +x ./scripts/install-or-update.sh
 - 创建必要目录。
 - 生成或检查 `REGISTRY_HTTP_SECRET`。
 - 检查 Docker Hub 用户名和 Access Token；未填写时直接退出。
-- 拉取固定 digest 的镜像。
+- 拉取固定版本 tag 的镜像。
 - 启动 Compose 服务。
 - 执行健康检查和真实 `docker pull` 验证。
 
@@ -145,7 +145,7 @@ docker compose logs -f --tail=100 nginx registry
 
 升级原则：
 
-- 镜像版本和 digest 必须同时更新。
+- 镜像版本必须使用明确 tag，并在测试节点验证后再更新生产环境。
 - 先在测试节点验证 `docker pull` 和 `crictl pull`。
 - 不要在同一次变更中同时改镜像版本、入口模式、CDN 缓存规则和客户端配置。
 
@@ -235,7 +235,7 @@ docker compose down
 docker run --rm \
   -v /data/docker-image-proxy/data/registry:/var/lib/registry \
   -v /data/docker-image-proxy/config/registry/config.yml:/etc/distribution/config.yml:ro \
-  registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33 \
+  registry:3.1.1 \
   garbage-collect /etc/distribution/config.yml
 docker compose up -d
 ./scripts/validate.sh

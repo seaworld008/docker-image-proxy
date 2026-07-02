@@ -21,12 +21,12 @@
 
 当前推荐版本（2026-06-30 已核验）：
 
-| 组件 | 版本 | Digest |
-| --- | --- | --- |
-| Docker Distribution Registry | `registry:3.1.1` | `sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33` |
-| Nginx | `nginx:1.30.3-alpine` | `sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1` |
+| 组件 | 镜像 tag |
+| --- | --- |
+| Docker Distribution Registry | `registry:3.1.1` |
+| Nginx | `nginx:1.30.3-alpine` |
 
-Compose 文件已固定到 tag + digest，避免上游 tag 漂移。
+Compose 文件固定到明确版本 tag，便于阅读、部署和后续升级。
 
 ## 适用场景
 

@@ -48,8 +48,8 @@ Docker Compose：v2.40.x
 部署包固定使用：
 
 ```text
-registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33
-nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e81f780f814d1
+registry:3.1.1
+nginx:1.30.3-alpine
 ```
 
 ## 部署目录结构
