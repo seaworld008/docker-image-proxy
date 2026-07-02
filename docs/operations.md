@@ -96,7 +96,7 @@ ss -lntp | grep ':5000'
 
 生产推荐：
 
-1. 按 [CDN 和安全入口手册](cdn-and-security.md) 发布 `https://mirror.example.com`。
+1. 按 [CDN 和安全入口](cdn-and-security.md)、[CDN 加速配置手册](cdn-acceleration.md) 和 [安全加固手册](security-hardening.md) 发布 `https://mirror.example.com`。
 2. 按 [客户端接入手册](client-usage.md) 配置国内 Docker/Kubernetes 节点。
 3. 从国内节点执行真实拉取：
 

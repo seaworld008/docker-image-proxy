@@ -61,12 +61,17 @@ docker pull 127.0.0.1:5000/library/alpine:3.20
 
 - 仓库总览：[../README.md](../README.md)
 - 文档导航：[../docs/README.md](../docs/README.md)
+- 架构设计：[../docs/architecture.md](../docs/architecture.md)
+- 源站部署：[../docs/source-deployment.md](../docs/source-deployment.md)
 - Docker/Kubernetes 客户端接入：[../docs/client-usage.md](../docs/client-usage.md)
 - CDN 和安全入口：[../docs/cdn-and-security.md](../docs/cdn-and-security.md)
+- CDN 加速配置：[../docs/cdn-acceleration.md](../docs/cdn-acceleration.md)
 - CDN 厂商配置：[../docs/cdn-provider-setup.md](../docs/cdn-provider-setup.md)
+- 安全加固：[../docs/security-hardening.md](../docs/security-hardening.md)
+- 端到端验证：[../docs/validation.md](../docs/validation.md)
 - 运维、升级、回滚和 GC：[../docs/operations.md](../docs/operations.md)
 - 生产案例模拟数据版：[../docs/production-case-silicon-valley.md](../docs/production-case-silicon-valley.md)
 
 ## 示例值规则
 
-公开文档使用模拟值，例如 `203.0.113.10`、`mirror.example.com`、`10022`、`/path/to/id_ed25519`、`replace-with-dockerhub-username` 和 `replace-with-dockerhub-access-token`。部署时请替换成自己的真实值，但不要把真实服务器 IP、SSH 信息、token 或 `.env` 文件提交到仓库。
+公开文档使用模拟值，例如 `203.0.113.10`、`mirror.example.com`、`10022`、`/path/to/id_ed25519`、`replace-with-dockerhub-username`、`replace-with-dockerhub-access-token` 和 `replace-with-random-origin-secret`。部署时请替换成自己的真实值，但不要把真实服务器 IP、SSH 信息、token、回源密钥或 `.env` 文件提交到仓库。

@@ -26,11 +26,16 @@ proxy.remoteurl = https://registry-1.docker.io
 
 - 人类入口：`README.md`
 - 文档导航：`docs/README.md`
-- 架构总览：`Docker Registry Mirror 自建方案（生产可用）.md`
+- 方案入口：`Docker Registry Mirror 自建方案（生产可用）.md`
+- 架构设计：`docs/architecture.md`
+- 源站部署：`docs/source-deployment.md`
 - 部署包说明：`deploy/README.md`
 - 客户端配置：`docs/client-usage.md`
 - CDN 和安全：`docs/cdn-and-security.md`
+- CDN 加速配置：`docs/cdn-acceleration.md`
 - CDN 厂商配置：`docs/cdn-provider-setup.md`
+- 安全加固：`docs/security-hardening.md`
+- 端到端验证：`docs/validation.md`
 - 运维手册：`docs/operations.md`
 - 模拟值生产案例：`docs/production-case-silicon-valley.md`
 
@@ -60,7 +65,7 @@ nginx:1.30.3-alpine@sha256:0d3b80406a13a767339fbe2f41406d6c7da727ab89cf8fae399e8
 
 1. 先确认上游最新稳定版本。
 2. 同时更新 tag 和 digest。
-3. 按需更新 `README.md`、`deploy/README.md`、`docs/operations.md` 和架构总览文档。
+3. 按需更新 `README.md`、`deploy/README.md`、`docs/architecture.md`、`docs/source-deployment.md`、`docs/operations.md` 和方案入口文档。
 4. 运行本地验证；如果有可用服务器，再运行真实环境验证。
 
 ## 模拟数据规则
@@ -75,6 +80,7 @@ mirror-origin.example.com
 /path/to/id_ed25519
 replace-with-dockerhub-username
 replace-with-dockerhub-access-token
+replace-with-random-origin-secret
 ```
 
 禁止提交：
@@ -156,8 +162,9 @@ curl -fsSI \
 
 加固公网访问：
 
-1. 从 `docs/cdn-and-security.md` 开始。
+1. 从 `docs/cdn-and-security.md` 选择入口模式。
 2. 优先使用 HTTPS CDN 入口。
-3. 按 `docs/cdn-provider-setup.md` 配置具体 CDN 厂商。
-4. 用 CDN 回源 IP 白名单或回源鉴权限制源站访问。
-5. `/v2/` 路径不要启用会破坏 Docker 客户端的 WAF 人机挑战。
+3. 按 `docs/cdn-acceleration.md` 配置 CDN 缓存、Range 和 Header。
+4. 按 `docs/cdn-provider-setup.md` 配置具体 CDN 厂商。
+5. 按 `docs/security-hardening.md` 用 CDN 回源 IP 白名单或回源鉴权限制源站访问。
+6. `/v2/` 路径不要启用会破坏 Docker 客户端的 WAF 人机挑战。

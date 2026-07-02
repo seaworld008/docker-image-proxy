@@ -98,7 +98,7 @@ docker-image-proxy-registry  up       internal 5000/tcp
 127.0.0.1:5000
 ```
 
-这避免了未鉴权 mirror 直接暴露到公网。国内服务器需要使用时，应先按 `docs/cdn-and-security.md` 配置 CDN 或受控直连入口。
+这避免了未鉴权 mirror 直接暴露到公网。国内服务器需要使用时，应先按 `docs/cdn-and-security.md` 选择入口模式，再按 `docs/cdn-acceleration.md` 和 `docs/security-hardening.md` 配置 CDN 与安全策略。
 
 ## 真实验证结果
 
