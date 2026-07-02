@@ -36,18 +36,23 @@ Compose 文件已固定到 tag + digest，避免上游 tag 漂移。
 cd /data/docker-image-proxy
 cp .env.example .env
 sed -i "s/replace-with-64-hex-chars/$(openssl rand -hex 32)/" .env
-docker compose pull
-docker compose up -d
-./scripts/validate.sh
 ```
 
-也可以运行内置安装脚本：
+然后必须编辑 `.env` 填写 Docker Hub 上游认证，把下面占位符替换成自己的真实值：
+
+```ini
+REGISTRY_PROXY_USERNAME=replace-with-dockerhub-username
+REGISTRY_PROXY_PASSWORD=replace-with-dockerhub-access-token
+```
+
+最后运行内置安装脚本：
 
 ```bash
-cd /data/docker-image-proxy
 chmod +x ./scripts/install-or-update.sh
 ./scripts/install-or-update.sh
 ```
+
+Docker Hub 账号/token 是生产必填项。自建 mirror 会集中回源 Docker Hub，匿名拉取很容易触发限流；部署脚本会在未填写时直接退出，避免服务以匿名模式悄悄上线。
 
 默认入口为 `127.0.0.1:5000`，不会直接暴露公网。要给国内服务器使用，请先配置 CDN HTTPS 或受控直连入口。
 
@@ -225,7 +230,7 @@ registry:3.1.1 -> Docker Hub
 - 客户端统一使用 HTTPS 域名，例如 `https://mirror.example.com`。
 - 源站只允许 CDN 回源 IP 或专用内网访问。
 - HTTP `5000` 直连仅用于短期验证，必须做源 IP 白名单。
-- Docker Hub 上游认证只使用专用低权限账号/token。
+- Docker Hub 上游认证是生产必填项，只使用专用低权限账号/token。
 - 所有持久化数据放在 `/data/docker-image-proxy/` 下。
 
 ## 文档入口
@@ -248,7 +253,6 @@ registry:3.1.1 -> Docker Hub
 .
 ├── deploy/                         # 可复制到服务器的部署包
 │   ├── docker-compose.yml
-│   ├── docker-compose.with-auth.yml
 │   ├── .env.example
 │   ├── config/registry/config.yml
 │   ├── nginx/nginx.conf
@@ -291,7 +295,8 @@ kubectl delete pod mirror-test
 - 域名：`mirror.example.com`
 - SSH 端口：`10022`
 - 私钥路径：`/path/to/id_ed25519`
-- token：`replace-with-your-token`
+- Docker Hub 用户名：`replace-with-dockerhub-username`
+- Docker Hub token：`replace-with-dockerhub-access-token`
 
 上线前必须替换成自己的真实值，但真实 IP、SSH 端口、私钥路径、token、`.env` 内容不要提交到仓库。
 

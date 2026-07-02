@@ -15,7 +15,6 @@
 ```text
 /data/docker-image-proxy/
 ├── docker-compose.yml
-├── docker-compose.with-auth.yml
 ├── .env
 ├── config/registry/config.yml
 ├── nginx/nginx.conf
@@ -44,25 +43,28 @@ chmod +x ./scripts/install-or-update.sh
 
 - 创建必要目录。
 - 生成或检查 `REGISTRY_HTTP_SECRET`。
+- 检查 Docker Hub 用户名和 Access Token；未填写时直接退出。
 - 拉取固定 digest 的镜像。
 - 启动 Compose 服务。
 - 执行健康检查和真实 `docker pull` 验证。
 
-## 启用 Docker Hub 上游认证
+## Docker Hub 上游认证
+
+Docker Hub 上游认证是生产必填项。自建 mirror 会集中代表多个客户端回源 Docker Hub，匿名拉取很容易触发限流。部署脚本会在 `.env` 未填写 Docker Hub 用户名/token 时直接退出。
 
 仅使用专用低权限 Docker Hub 账号/token。不要使用可访问私有镜像的个人主账号，除非 mirror 已做好访问控制。
 
-编辑 `.env`：
+编辑 `.env`，把下面占位符替换成自己的真实值：
 
 ```ini
-REGISTRY_PROXY_USERNAME=your-dockerhub-user
-REGISTRY_PROXY_PASSWORD=replace-with-your-token
+REGISTRY_PROXY_USERNAME=replace-with-dockerhub-username
+REGISTRY_PROXY_PASSWORD=replace-with-dockerhub-access-token
 ```
 
-启动认证覆盖文件：
+启动：
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.with-auth.yml up -d
+docker compose up -d
 ./scripts/validate.sh
 ```
 
@@ -197,7 +199,6 @@ docker compose logs -f nginx registry
 ```text
 .env
 docker-compose.yml
-docker-compose.with-auth.yml
 config/registry/config.yml
 nginx/nginx.conf
 ```
@@ -211,7 +212,6 @@ cd /data
 tar czf docker-image-proxy-config-$(date +%F).tgz \
   docker-image-proxy/.env \
   docker-image-proxy/docker-compose.yml \
-  docker-image-proxy/docker-compose.with-auth.yml \
   docker-image-proxy/config \
   docker-image-proxy/nginx
 ```
@@ -292,10 +292,18 @@ crictl pull docker.io/library/alpine:3.20
 
 ### Docker Hub 429 或回源失败
 
-考虑启用 Docker Hub 上游认证：
+先确认 `.env` 已填写 Docker Hub 上游认证：
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.with-auth.yml up -d
+cd /data/docker-image-proxy
+grep -E '^(REGISTRY_PROXY_USERNAME|REGISTRY_PROXY_PASSWORD)=' .env
+```
+
+再重启并验证：
+
+```bash
+docker compose up -d
+./scripts/validate.sh
 ```
 
 同时检查是否有大量未授权客户端滥用 mirror。
