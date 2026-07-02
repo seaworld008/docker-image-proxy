@@ -4,6 +4,8 @@
 
 本仓库的目标是把一个镜像加速方案整理成可长期维护的生产级工程：部署脚本、Compose 配置、客户端接入、CDN/安全、运维升级、真实案例和 AI agent 上下文都集中在仓库中。
 
+详细方案已按主题拆分：架构见 [docs/architecture.md](docs/architecture.md)，源站部署见 [docs/source-deployment.md](docs/source-deployment.md)，CDN 加速见 [docs/cdn-acceleration.md](docs/cdn-acceleration.md)，安全加固见 [docs/security-hardening.md](docs/security-hardening.md)，端到端验证见 [docs/validation.md](docs/validation.md)。
+
 ## 当前稳定版本
 
 当前推荐版本（2026-06-30 已核验）：
@@ -238,11 +240,16 @@ registry:3.1.1 -> Docker Hub
 | 文档 | 用途 |
 | --- | --- |
 | [docs/README.md](docs/README.md) | 文档导航，建议先读这里 |
-| [Docker Registry Mirror 自建方案（生产可用）.md](Docker%20Registry%20Mirror%20%E8%87%AA%E5%BB%BA%E6%96%B9%E6%A1%88%EF%BC%88%E7%94%9F%E4%BA%A7%E5%8F%AF%E7%94%A8%EF%BC%89.md) | 方案总览与架构决策 |
+| [Docker Registry Mirror 自建方案（生产可用）.md](Docker%20Registry%20Mirror%20%E8%87%AA%E5%BB%BA%E6%96%B9%E6%A1%88%EF%BC%88%E7%94%9F%E4%BA%A7%E5%8F%AF%E7%94%A8%EF%BC%89.md) | 方案入口和阅读路径 |
+| [docs/architecture.md](docs/architecture.md) | 架构设计、适用边界和生产约束 |
+| [docs/source-deployment.md](docs/source-deployment.md) | 海外源站部署、入口模式和本机验证 |
 | [deploy/README.md](deploy/README.md) | 部署包说明 |
 | [docs/client-usage.md](docs/client-usage.md) | Docker、Kubernetes Docker CRI、containerd、k3s、RKE2 接入 |
-| [docs/cdn-and-security.md](docs/cdn-and-security.md) | 域名、CDN、源站安全、WAF、回源配置 |
+| [docs/cdn-and-security.md](docs/cdn-and-security.md) | CDN/安全入口模式选择 |
+| [docs/cdn-acceleration.md](docs/cdn-acceleration.md) | CDN 选型、缓存、Range、Header |
 | [docs/cdn-provider-setup.md](docs/cdn-provider-setup.md) | 阿里云、腾讯云、华为云、AWS CloudFront、Cloudflare CDN 逐步配置 |
+| [docs/security-hardening.md](docs/security-hardening.md) | 源站保护、WAF、回源鉴权、限流、密钥 |
+| [docs/validation.md](docs/validation.md) | 源站、CDN、Docker、Kubernetes 端到端验证 |
 | [docs/operations.md](docs/operations.md) | 日常运维、升级、回滚、清理、排错 |
 | [docs/production-case-silicon-valley.md](docs/production-case-silicon-valley.md) | 硅谷源站真实部署案例，使用模拟数据展示 |
 | [AGENTS.md](AGENTS.md) | 给 AI agent 和后续维护者的仓库上下文 |
@@ -257,10 +264,10 @@ registry:3.1.1 -> Docker Hub
 │   ├── config/registry/config.yml
 │   ├── nginx/nginx.conf
 │   └── scripts/
-├── docs/                           # 拆分后的生产运维文档
+├── docs/                           # 架构、部署、CDN、安全、验证、运维文档
 ├── AGENTS.md                       # AI agent 维护说明
 ├── README.md                       # 仓库总入口
-└── Docker Registry Mirror 自建方案（生产可用）.md
+└── Docker Registry Mirror 自建方案（生产可用）.md  # 方案入口
 ```
 
 ## 验证
@@ -297,6 +304,7 @@ kubectl delete pod mirror-test
 - 私钥路径：`/path/to/id_ed25519`
 - Docker Hub 用户名：`replace-with-dockerhub-username`
 - Docker Hub token：`replace-with-dockerhub-access-token`
+- 回源鉴权密钥：`replace-with-random-origin-secret`
 
 上线前必须替换成自己的真实值，但真实 IP、SSH 端口、私钥路径、token、`.env` 内容不要提交到仓库。
 
