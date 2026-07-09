@@ -42,6 +42,8 @@ Docker Hub token：replace-with-dockerhub-access-token
 ├── .env.example
 ├── config/registry/config.yml
 ├── nginx/nginx.conf
+├── nginx/conf.d/default.conf
+├── nginx/conf.d/cdn-origin-auth.conf
 ├── data/registry/
 ├── logs/nginx/
 └── scripts/
@@ -112,6 +114,7 @@ docker compose ps
 ```ini
 PROXY_BIND_ADDR=127.0.0.1
 PROXY_HTTP_PORT=5000
+NGINX_SERVER_CONF=./nginx/conf.d/default.conf
 ```
 
 也就是只监听本机：
@@ -126,6 +129,16 @@ PROXY_HTTP_PORT=5000
 curl -fsSI http://127.0.0.1:5000/v2/
 docker pull 127.0.0.1:5000/library/alpine:3.20
 ```
+
+内置 Nginx 配置拆成主配置和入口子配置：
+
+```text
+nginx/nginx.conf                    # 全局 http、日志、限流、upstream
+nginx/conf.d/default.conf           # 默认普通入口
+nginx/conf.d/cdn-origin-auth.conf   # CDN 回源 Header 鉴权入口
+```
+
+默认只启用 `default.conf`。Compose 通过 `.env` 中的 `NGINX_SERVER_CONF` 把选中的入口子配置挂载到容器内 `/etc/nginx/conf.d/default.conf`，不要同时启用两个入口子配置。
 
 ## 六、发布给 CDN 的两种入口
 
@@ -151,6 +164,28 @@ docker compose up -d
 ss -lntp | grep ':5000'
 curl -fsSI http://127.0.0.1:5000/v2/
 ```
+
+如果 CDN 支持自定义回源 Header，建议同时启用 CDN 专用入口：
+
+```bash
+cd /data/docker-image-proxy
+cp .env .env.bak.$(date +%F-%H%M%S)
+vi nginx/conf.d/cdn-origin-auth.conf
+sed -i 's#^NGINX_SERVER_CONF=.*#NGINX_SERVER_CONF=./nginx/conf.d/cdn-origin-auth.conf#' .env
+docker compose up -d
+```
+
+编辑 `nginx/conf.d/cdn-origin-auth.conf` 时，把 `replace-with-random-origin-secret` 替换为自己的真实随机长密钥。
+
+CDN 回源添加：
+
+```text
+X-Origin-Auth: replace-with-random-origin-secret
+```
+
+上线时把 Header 值替换为同一个真实随机长密钥。
+
+启用后，外部访问 `/v2/` 必须带 Header；`/healthz` 和容器内部 `127.0.0.1` 健康检查不需要 Header。
 
 安全组示例：
 
@@ -201,7 +236,7 @@ server {
 }
 ```
 
-如果启用 CDN 回源 Header 鉴权，校验逻辑应放在这个源站网关里。完整安全建议见 [安全加固手册](security-hardening.md)。
+如果启用 CDN 回源 Header 鉴权，校验逻辑可以放在这个源站网关里；如果直接让 CDN 回源到本仓库内置 Nginx，也可以使用 `nginx/conf.d/cdn-origin-auth.conf`。完整安全建议见 [安全加固手册](security-hardening.md)。
 
 <a id="direct-http-test"></a>
 ## 七、直连内测

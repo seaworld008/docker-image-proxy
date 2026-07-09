@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 文档导航
+    url: https://github.com/seaworld008/docker-image-proxy/blob/main/docs/README.md
+    about: 先按目标选择部署、客户端、CDN、安全或运维文档。
+  - name: 安全问题反馈
+    url: https://github.com/seaworld008/docker-image-proxy/security/advisories/new
+    about: 请通过私密渠道报告安全问题，不要在公开 Issue 中披露敏感细节。

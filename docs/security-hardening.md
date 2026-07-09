@@ -92,13 +92,32 @@ if ($http_x_origin_auth != "replace-with-random-origin-secret") {
 }
 ```
 
+仓库内置 Nginx 已提供可切换的 CDN 回源鉴权子配置：
+
+```text
+nginx/conf.d/default.conf           # 普通入口
+nginx/conf.d/cdn-origin-auth.conf   # 校验 X-Origin-Auth
+```
+
+启用步骤：
+
+```bash
+cd /data/docker-image-proxy
+cp .env .env.bak.$(date +%F-%H%M%S)
+vi nginx/conf.d/cdn-origin-auth.conf
+sed -i 's#^NGINX_SERVER_CONF=.*#NGINX_SERVER_CONF=./nginx/conf.d/cdn-origin-auth.conf#' .env
+docker compose up -d
+```
+
+编辑 `nginx/conf.d/cdn-origin-auth.conf` 时，把 `replace-with-random-origin-secret` 替换为自己的真实随机长密钥，并在 CDN 回源 Header 中使用同一个值。
+
 注意：
 
 - `replace-with-random-origin-secret` 必须替换为随机长密钥。
 - 不要把真实回源密钥提交到仓库。
 - 如果用 `certbot` HTTP-01 验证证书，需要放行 `/.well-known/acme-challenge/`，或改用 DNS 验证。
-
-当前 `deploy/` 内置 Nginx 默认没有启用 Header 鉴权。建议把校验放在源站前置网关，或在私有部署中定制 `deploy/nginx/nginx.conf`。
+- `cdn-origin-auth.conf` 只保护 `/v2/` 路径；`/healthz` 和容器内部 `127.0.0.1` 健康检查不需要 Header。
+- 生产仍建议叠加安全组或防火墙，只允许 CDN 回源 IP 访问源站端口。
 
 ## 五、WAF 放行规则
 

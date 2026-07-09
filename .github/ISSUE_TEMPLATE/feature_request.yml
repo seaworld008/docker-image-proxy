@@ -1,0 +1,57 @@
+name: Feature request
+description: 提议新的文档、部署能力、客户端配置或运维改进
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题？
+      description: 请描述真实使用场景和当前不方便的地方。
+      placeholder: 例如：希望补充某个 CDN 厂商的 Docker Registry 缓存配置。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 请描述你希望仓库如何改进。
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 关联范围
+      options:
+        - deploy/ 源站部署
+        - Docker 客户端
+        - Kubernetes / containerd
+        - CDN / WAF / 安全
+        - 运维 / 验证 / 回滚
+        - README / 文档结构
+        - 开源工程化
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案
+      description: 你是否尝试过其他方案？为什么不够好？
+    validations:
+      required: false
+  - type: textarea
+    id: validation
+    attributes:
+      label: 验证方式
+      description: 如果你已经验证过，请说明命令、环境和结论。请使用脱敏信息。
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他补充
+      description: 链接、参考文档、约束或维护者需要确认的事项。
+    validations:
+      required: false

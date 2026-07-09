@@ -64,6 +64,7 @@ CDN 回源参数：
 安全要求：
 
 - 源站 TCP `5000` 只允许 CDN 回源 IP 段。
+- 如 CDN 支持自定义回源 Header，可把 `.env` 中 `NGINX_SERVER_CONF` 切到 `./nginx/conf.d/cdn-origin-auth.conf`，并在 CDN 回源添加 `X-Origin-Auth`。
 - 不允许 `0.0.0.0/0` 直连。
 - WAF 对 `/v2/` 不启用浏览器挑战。
 

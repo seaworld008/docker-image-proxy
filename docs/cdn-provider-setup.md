@@ -247,7 +247,17 @@ if ($http_x_origin_auth != "replace-with-random-origin-secret") {
 }
 ```
 
-当前 `deploy/` 内置 Nginx 默认没有启用 Header 鉴权；如果需要 Header 鉴权，建议放在源站前置网关，或单独定制 `deploy/nginx/nginx.conf`。
+如果直接让 CDN 回源到本仓库内置 Nginx，可以启用 CDN 专用入口：
+
+```bash
+cd /data/docker-image-proxy
+cp .env .env.bak.$(date +%F-%H%M%S)
+vi nginx/conf.d/cdn-origin-auth.conf
+sed -i 's#^NGINX_SERVER_CONF=.*#NGINX_SERVER_CONF=./nginx/conf.d/cdn-origin-auth.conf#' .env
+docker compose up -d
+```
+
+编辑 `nginx/conf.d/cdn-origin-auth.conf` 时，把 `replace-with-random-origin-secret` 替换为自己的真实随机长密钥，并在 CDN 回源 Header 中使用同一个值。`nginx/conf.d/default.conf` 是普通入口，`nginx/conf.d/cdn-origin-auth.conf` 是校验 `X-Origin-Auth` 的 CDN 回源入口。不要把真实回源密钥提交到仓库。
 
 <a id="aliyun-cdn"></a>
 ## 四、阿里云 CDN / DCDN 配置
