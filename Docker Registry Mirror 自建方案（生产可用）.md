@@ -83,6 +83,7 @@ CDN 选型：
 安全要点：
 
 - 源站安全组只允许 CDN 回源 IP、堡垒机或临时测试 IP。
+- 如 CDN 支持自定义回源 Header，可启用 `nginx/conf.d/cdn-origin-auth.conf` 校验 `X-Origin-Auth`。
 - 对 `/v2/` 跳过 JS Challenge、验证码、Bot Challenge。
 - 允许 `GET`、`HEAD`、`OPTIONS` 和 Range 请求。
 - 不要把未鉴权 HTTP mirror 对公网开放。

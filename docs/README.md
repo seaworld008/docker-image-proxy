@@ -30,8 +30,9 @@
 1. 选择 [CDN 和安全入口](cdn-and-security.md) 中的入口模式。
 2. 按 [CDN 加速配置手册](cdn-acceleration.md) 配置缓存、Range、Header。
 3. 按 [CDN 厂商配置手册](cdn-provider-setup.md) 配置具体云厂商。
-4. 按 [安全加固手册](security-hardening.md) 做源站保护、WAF 放行和回源鉴权。
-5. 用 [验证手册](validation.md) 做真实拉取测试。
+4. 如需自定义 Header 回源鉴权，按 [部署包说明](../deploy/README.md) 启用 `nginx/conf.d/cdn-origin-auth.conf`。
+5. 按 [安全加固手册](security-hardening.md) 做源站保护、WAF 放行和回源鉴权。
+6. 用 [验证手册](validation.md) 做真实拉取测试。
 
 ## 文档清单
 
@@ -50,6 +51,15 @@
 | [日常运维手册](operations.md) | 安装、升级、回滚、日志、GC、备份、排错 |
 | [硅谷源站案例](production-case-silicon-valley.md) | 真实部署经验，用模拟数据展示可替换字段 |
 | [AI agent 说明](../AGENTS.md) | 给自动化 agent 的仓库结构、约束和验证路径 |
+
+## 开源协作入口
+
+| 文档 | 内容 |
+| --- | --- |
+| [贡献指南](../CONTRIBUTING.md) | Issue、PR、本地检查、文档风格和安全脱敏要求 |
+| [安全政策](../SECURITY.md) | 安全问题反馈方式、支持范围和敏感信息规则 |
+| [社区行为准则](../CODE_OF_CONDUCT.md) | 参与讨论、Issue 和 PR 的基本协作准则 |
+| [变更日志](../CHANGELOG.md) | 已发布版本和未发布变更记录 |
 
 ## 示例值约定
 

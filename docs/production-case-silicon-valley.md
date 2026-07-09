@@ -60,6 +60,8 @@ nginx:1.30.3-alpine
 ├── .env
 ├── config/registry/config.yml
 ├── nginx/nginx.conf
+├── nginx/conf.d/default.conf
+├── nginx/conf.d/cdn-origin-auth.conf
 ├── data/registry/
 ├── logs/nginx/
 └── scripts/

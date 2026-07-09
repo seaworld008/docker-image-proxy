@@ -38,6 +38,12 @@ proxy.remoteurl = https://registry-1.docker.io
 - 端到端验证：`docs/validation.md`
 - 运维手册：`docs/operations.md`
 - 模拟值生产案例：`docs/production-case-silicon-valley.md`
+- 普通 Nginx 子配置：`deploy/nginx/conf.d/default.conf`
+- CDN 回源鉴权 Nginx 子配置：`deploy/nginx/conf.d/cdn-origin-auth.conf`
+- 贡献指南：`CONTRIBUTING.md`
+- 安全政策：`SECURITY.md`
+- 变更日志：`CHANGELOG.md`
+- 社区行为准则：`CODE_OF_CONDUCT.md`
 
 ## 生产约束
 
@@ -92,6 +98,7 @@ replace-with-random-origin-secret
 - `.env` 文件。
 - 云厂商凭据。
 - `REGISTRY_HTTP_SECRET`。
+- CDN 回源鉴权密钥。
 - 真实 `REGISTRY_PROXY_USERNAME` 或 `REGISTRY_PROXY_PASSWORD`。
 
 如果记录真实部署案例，必须把敏感值替换成上面的模拟值，并明确说明用户上线前要替换成自己的真实值。
@@ -136,9 +143,11 @@ curl -fsSI \
 - 优先做小而聚焦的改动。
 - README 保持简洁，长步骤放到 `docs/`。
 - 新增、重命名或删除文档时，同步更新 `docs/README.md`。
+- 新增开源协作文件时，同步更新 `README.md`、`docs/README.md` 和本文件入口。
 - 文档、脚本注释、示例说明默认使用中文；配置键、命令、第三方协议字段保持原样。
 - 占位符在各文档中保持一致。
 - 不要加入真实密钥、真实机器路径或可识别服务器的信息。
+- 不要在维护者确认前添加 `LICENSE` 文件或 License badge。
 - 修改 Docker、containerd、Kubernetes、k3s、CDN 运行配置指导时，优先参考官方文档。
 - 提交前运行 `git diff --check`。
 
@@ -166,5 +175,6 @@ curl -fsSI \
 2. 优先使用 HTTPS CDN 入口。
 3. 按 `docs/cdn-acceleration.md` 配置 CDN 缓存、Range 和 Header。
 4. 按 `docs/cdn-provider-setup.md` 配置具体 CDN 厂商。
-5. 按 `docs/security-hardening.md` 用 CDN 回源 IP 白名单或回源鉴权限制源站访问。
-6. `/v2/` 路径不要启用会破坏 Docker 客户端的 WAF 人机挑战。
+5. 如用自定义 Header 回源鉴权，启用 `deploy/nginx/conf.d/cdn-origin-auth.conf`，并把 `replace-with-random-origin-secret` 换成真实随机长密钥。
+6. 按 `docs/security-hardening.md` 用 CDN 回源 IP 白名单或回源鉴权限制源站访问。
+7. `/v2/` 路径不要启用会破坏 Docker 客户端的 WAF 人机挑战。

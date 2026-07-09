@@ -145,6 +145,8 @@ CDN 边缘缓存建议：
 2. CDN 不破坏协议：`/v2/` 跳过验证码、JS Challenge、Bot Challenge，允许 Range。
 3. 上游不匿名：Docker Hub 回源使用专用低权限账号和 Access Token。
 
+如果 CDN 支持自定义回源 Header，可以把 Nginx 入口子配置从 `nginx/conf.d/default.conf` 切换到 `nginx/conf.d/cdn-origin-auth.conf`，由源站校验 `X-Origin-Auth`。
+
 完整安全配置见 [安全加固手册](security-hardening.md)。
 
 ## 十、相关文档

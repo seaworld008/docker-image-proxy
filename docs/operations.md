@@ -18,6 +18,8 @@
 ├── .env
 ├── config/registry/config.yml
 ├── nginx/nginx.conf
+├── nginx/conf.d/default.conf
+├── nginx/conf.d/cdn-origin-auth.conf
 ├── data/registry/
 ├── logs/nginx/
 └── scripts/
@@ -200,7 +202,7 @@ docker compose logs -f nginx registry
 .env
 docker-compose.yml
 config/registry/config.yml
-nginx/nginx.conf
+nginx/
 ```
 
 缓存目录 `data/registry/` 可以备份，但通常可由 Docker Hub 重新回源生成。若磁盘和时间成本较高，可只备份配置，不备份缓存。

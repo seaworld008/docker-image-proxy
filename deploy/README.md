@@ -34,6 +34,42 @@ chmod +x ./scripts/install-or-update.sh
 
 默认监听 `127.0.0.1:5000`，避免 mirror 直接暴露到公网。需要给外部服务器使用时，请先配置 HTTPS/CDN、云安全组白名单或回源鉴权，再调整 `PROXY_BIND_ADDR`。
 
+## Nginx 配置文件
+
+Nginx 主配置和入口子配置已经拆开：
+
+```text
+nginx/nginx.conf                    # 全局 http、日志、限流、upstream
+nginx/conf.d/default.conf           # 默认普通入口
+nginx/conf.d/cdn-origin-auth.conf   # CDN 回源 Header 鉴权入口
+```
+
+Compose 默认挂载普通入口：
+
+```ini
+NGINX_SERVER_CONF=./nginx/conf.d/default.conf
+```
+
+如果 CDN 支持自定义回源 Header，可以启用 CDN 专用入口：
+
+```bash
+cd /data/docker-image-proxy
+cp .env .env.bak.$(date +%F-%H%M%S)
+vi nginx/conf.d/cdn-origin-auth.conf
+sed -i 's#^NGINX_SERVER_CONF=.*#NGINX_SERVER_CONF=./nginx/conf.d/cdn-origin-auth.conf#' .env
+docker compose up -d
+```
+
+编辑 `nginx/conf.d/cdn-origin-auth.conf` 时，把 `replace-with-random-origin-secret` 替换为自己的真实随机长密钥。
+
+然后在 CDN 回源配置中添加：
+
+```text
+X-Origin-Auth: replace-with-random-origin-secret
+```
+
+上线时把 Header 值替换为同一个真实随机长密钥，不要把真实回源密钥提交到仓库。启用 CDN 鉴权后，外部访问 `/v2/` 必须携带 Header；容器内部健康检查仍允许从 `127.0.0.1` 访问 `/v2/`。
+
 ## 为什么 Docker Hub 账号/token 是必填
 
 自建 mirror 会集中代表多个客户端回源 Docker Hub。匿名拉取很容易触发 Docker Hub 限流，表现为镜像拉取失败、速度变慢或返回 429。生产部署必须使用认证回源，避免后续稳定性问题。

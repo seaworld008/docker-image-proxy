@@ -1,0 +1,87 @@
+name: Bug report
+description: 报告可复现的部署、文档、客户端配置或运维问题
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈问题。请不要粘贴真实 token、私钥、服务器 IP、SSH 端口或 `.env` 内容。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 简要说明你遇到的问题。
+      placeholder: 例如：containerd 配置 mirror 后仍然从 Docker Hub 直连拉取。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请列出可以复现问题的关键步骤。
+      placeholder: |
+        1. 按 docs/client-usage.md 配置 hosts.toml
+        2. 重启 containerd
+        3. 执行 crictl pull docker.io/library/alpine:3.20
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 你期望发生什么？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际发生了什么？可以粘贴已脱敏的报错日志。
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - deploy/ 源站部署
+        - Docker Engine 客户端
+        - Kubernetes Docker CRI
+        - containerd
+        - k3s / RKE2
+        - CDN / WAF / 安全
+        - 文档
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 请填写可公开的信息，敏感值请脱敏。
+      placeholder: |
+        OS:
+        Docker version:
+        containerd version:
+        Kubernetes version:
+        CDN provider:
+        Mirror endpoint: https://mirror.example.com
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 请粘贴已脱敏的日志、命令输出或截图说明。
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他补充
+      description: 其他上下文、临时绕过方法或你已经排查过的内容。
+    validations:
+      required: false

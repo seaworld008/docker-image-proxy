@@ -5,7 +5,7 @@ APP_DIR="${APP_DIR:-/data/docker-image-proxy}"
 
 cd "$APP_DIR"
 
-mkdir -p data/registry logs/nginx config/registry nginx scripts
+mkdir -p data/registry logs/nginx config/registry nginx/conf.d scripts
 
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -42,8 +42,8 @@ if [ -z "$dockerhub_pass" ] || [ "$dockerhub_pass" = "replace-with-dockerhub-acc
 fi
 
 chmod 600 .env
-chmod 644 docker-compose.yml .env.example README.md .gitignore
-chmod 644 config/registry/config.yml nginx/nginx.conf
+chmod 644 docker-compose.yml .env.example README.md
+chmod 644 config/registry/config.yml nginx/nginx.conf nginx/conf.d/*.conf
 chmod 755 scripts scripts/install-or-update.sh scripts/validate.sh
 chmod 755 data data/registry logs logs/nginx
 

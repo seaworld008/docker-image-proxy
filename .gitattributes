@@ -4,3 +4,6 @@
 *.yaml text eol=lf
 *.conf text eol=lf
 *.example text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
